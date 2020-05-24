@@ -1,0 +1,21 @@
+[package]
+name = "moondust-kernel"
+version = "0.0.1"
+authors = ["Vinay Chandra Dommeti <moondust@vinay.vc>"]
+edition = "2018"
+
+[dependencies]
+spin = "0.5"
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
+log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+bootloader = "0.9"
+x86_64 = "0.11"
+
+[package.metadata.bootimage]
+test-args = [
+    "-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", "-serial", "stdio",
+    "-display", "none"
+]
+test-success-exit-code = 33         # (0x10 << 1) | 1
