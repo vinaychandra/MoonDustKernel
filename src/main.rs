@@ -2,6 +2,7 @@
 #![no_main]
 
 use bootloader::{entry_point, BootInfo};
+#[cfg(not(test))]
 use core::panic::PanicInfo;
 use moondust_kernel::*;
 
@@ -24,6 +25,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 }
 
 /// This function is called on panic.
+#[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     kernel_error!("PANIC: {}", info);
