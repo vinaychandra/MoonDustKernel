@@ -1,26 +1,31 @@
 #![no_std]
 #![no_main]
 
+use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
+use moondust_kernel::*;
 
-static HELLO: &[u8] = b"Hello World!";
+entry_point!(kernel_main);
 
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    let vga_buffer = 0xb8000 as *mut u8;
+/// Entry point for the Operating System.
+#[no_mangle] // don't mangle the name of this function
+fn kernel_main(boot_info: &'static BootInfo) -> ! {
+    moondust_kernel::initialize_logging();
 
-    for (i, &byte) in HELLO.iter().enumerate() {
-        unsafe {
-            *vga_buffer.offset(i as isize * 2) = byte;
-            *vga_buffer.offset(i as isize * 2 + 1) = 0xb;
-        }
-    }
+    kernel_error!("{:X}", boot_info.physical_memory_offset);
 
-    loop {}
+    let a = 1;
+    kernel_info!("{:X}", &a as *const i32 as u64);
+
+    kernel_info!("{:?}", boot_info);
+
+    kernel_error!("kernel loop ended.");
+    arch::hlt_loop()
 }
 
 /// This function is called on panic.
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
+fn panic(info: &PanicInfo) -> ! {
+    kernel_error!("PANIC: {}", info);
+    arch::hlt_loop()
 }

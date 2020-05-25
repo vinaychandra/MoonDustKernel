@@ -16,7 +16,7 @@ check:
 	cargo xcheck --target $(TARGET_JSON)
 
 clean:
-	cargo xclean
+	cargo clean
 
 doc:
 	cargo xdoc --target $(TARGET_JSON)
