@@ -15,10 +15,8 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     kernel_error!("{:X}", boot_info.physical_memory_offset);
 
-    let a = 1;
-    kernel_info!("{:X}", &a as *const i32 as u64);
-
-    kernel_info!("{:?}", boot_info);
+    let a = panic as *const () as u64;
+    kernel_info!("{:X}", a);
 
     kernel_error!("kernel loop ended.");
     arch::hlt_loop()
