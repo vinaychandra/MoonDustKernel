@@ -24,5 +24,5 @@ doc:
 ifeq ($(PLATFORM),x86_64)
 run:
 	cargo bootimage --target $(TARGET_JSON)
-	qemu-system-x86_64 -drive format=raw,file=target/$(TARGET_NAME)/debug/$(BOOTIMAGE_KERNEL_FILE).bin
+	qemu-system-x86_64 -drive format=raw,file=target/$(TARGET_NAME)/debug/$(BOOTIMAGE_KERNEL_FILE).bin -s -S -smp 2
 endif
