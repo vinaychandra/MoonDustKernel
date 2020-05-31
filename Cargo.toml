@@ -10,6 +10,7 @@ futures-util = { version = "0.3", default-features = false, features = ["alloc"]
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
 lazy_static = { version = "1", features = ["spin_no_std"] }
 volatile = "0.2"
+linked_list_allocator = "0.8"
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 bootloader = {path = "./others/x86_64/bootloader", features = ["map_physical_memory"]}
