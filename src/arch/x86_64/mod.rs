@@ -17,13 +17,15 @@ pub fn hlt_loop() -> ! {
 pub fn init(boot_info: &'static BootInfo) {
     gdt::init();
 
-    interrupts::init_idt();
+    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
 
     // Setup memory and heap
-    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
     let mut frame_allocator =
         memory::boot_frame_allocator::BootFrameAllocator::new(&boot_info.memory_map);
 
     memory::heap::init_heap(&mut mapper, &mut frame_allocator).expect("Heap allocation failed");
+
+    // Setup interrupts
+    interrupts::initialize(phys_mem_offset);
 }

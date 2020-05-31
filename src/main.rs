@@ -21,7 +21,9 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     arch::init(boot_info);
 
     // test box
-    let test = Box::new(10u64);
+    let _test = Box::new(10u64);
+
+    x86_64::instructions::interrupts::enable();
 
     kernel_error!("kernel loop ended.");
     arch::hlt_loop()

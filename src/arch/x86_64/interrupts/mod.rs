@@ -1,9 +1,14 @@
 mod handlers;
+mod hpet;
+mod pic;
 
 use super::gdt;
 use crate::*;
 use lazy_static::lazy_static;
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
+use x86_64::{
+    structures::idt::{InterruptDescriptorTable, InterruptStackFrame},
+    VirtAddr,
+};
 
 /// Offsets for PIC raised interrupts. 32 is the first value available
 /// after the inbuilt CPU exceptions. This is for the main PIC.
@@ -41,12 +46,33 @@ lazy_static! {
                 .set_handler_fn(handlers::double_fault_handler)
                 .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
         }
+        idt[InterruptIndex::Timer.as_usize()].set_handler_fn(handlers::timer_interrupt_handler);
+        idt[InterruptIndex::HpetTimer.as_usize()].set_handler_fn(handlers::hpet_timer_handler);
+
         idt
     };
 }
 
-pub fn init_idt() {
+/// Initialize interrupts
+/// - Disable PIC
+/// - Enable APIC/xAPIC
+/// - Enable HPET
+pub fn initialize(phys_mem_offset: VirtAddr) {
     IDT.load();
+
+    // pic::pic8259_simple::simple_pic::initialize_pic();
+    pic::pic8259_simple::simple_pic::disable_pic();
+
+    // Load ACPI tables
+    let acpi = pic::acpi::load_acpi(phys_mem_offset);
+
+    // pic::apic::initialize_apic(phys_mem_offset);
+    pic::xapic::initialize_apic(phys_mem_offset);
+
+    // HPET
+    let hpet_location = acpi.hpet.expect("Cannot find HPET");
+    let location = phys_mem_offset + hpet_location.base_address;
+    unsafe { hpet::init(location) };
 }
 
 /// Handler than be used for non-standard faults.
