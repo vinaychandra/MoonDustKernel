@@ -10,13 +10,12 @@ entry_point!(kernel_main);
 
 /// Entry point for the Operating System.
 #[no_mangle] // don't mangle the name of this function
-fn kernel_main(boot_info: &'static BootInfo) -> ! {
+fn kernel_main(_boot_info: &'static BootInfo) -> ! {
+    // Initialize logging so that data can be seen on screen
     moondust_kernel::initialize_logging();
 
-    kernel_error!("{:X}", boot_info.physical_memory_offset);
-
-    let a = panic as *const () as u64;
-    kernel_info!("{:X}", a);
+    // Initialize architecture
+    arch::init();
 
     kernel_error!("kernel loop ended.");
     arch::hlt_loop()
