@@ -1,5 +1,6 @@
 mod _console_vga;
-mod _gdt;
+mod gdt;
+pub mod interrupts;
 pub mod log;
 
 pub fn hlt_loop() -> ! {
@@ -10,5 +11,7 @@ pub fn hlt_loop() -> ! {
 
 /// Architecture level initialization.
 pub fn init() {
-    _gdt::init();
+    gdt::init();
+
+    interrupts::init_idt();
 }
