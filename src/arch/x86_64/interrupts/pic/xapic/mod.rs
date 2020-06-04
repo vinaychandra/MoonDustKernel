@@ -12,14 +12,21 @@ use x86_64::VirtAddr;
 /// Local APIC instance. This is a hardware available per-CPU.
 pub static mut LAPIC: Option<LApic> = None;
 
-pub fn initialize_apic(phys_mem_offset: VirtAddr) {
+/// Initialize the APIC
+/// ## Arguments
+/// * `phys_mem_offset` - The offset at which all of physical memory is mapped to.
+/// * `ioapic_address` - The physical address at which IOAPIC is mapped to. This value
+/// has to be detected from ACPI tables. For Qemu, this is 0xfec0000
+pub fn initialize_apic(phys_mem_offset: VirtAddr, ioapic_address: u32) {
     let lapic_instance = unsafe {
         LApic::new(VirtAddr::new(
             LApic::read_base().as_u64() + phys_mem_offset.as_u64(),
         ))
     };
 
-    let ioapic_instance = ioapic::IOApic::new(VirtAddr::new(0xfec00000 + phys_mem_offset.as_u64()));
+    let ioapic_instance = ioapic::IOApic::new(VirtAddr::new(
+        ioapic_address as u64 + phys_mem_offset.as_u64(),
+    ));
 
     // Enable local APIC
     lapic_instance.enable();

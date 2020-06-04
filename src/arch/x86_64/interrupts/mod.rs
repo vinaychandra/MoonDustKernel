@@ -60,14 +60,22 @@ lazy_static! {
 pub fn initialize(phys_mem_offset: VirtAddr) {
     IDT.load();
 
-    // pic::pic8259_simple::simple_pic::initialize_pic();
+    // Disable legacy PIC
     pic::pic8259_simple::simple_pic::disable_pic();
 
     // Load ACPI tables
     let acpi = pic::acpi::load_acpi(phys_mem_offset);
 
-    // pic::apic::initialize_apic(phys_mem_offset);
-    pic::xapic::initialize_apic(phys_mem_offset);
+    let interrupt_model = acpi.interrupt_model.unwrap();
+    match interrupt_model {
+        acpi::InterruptModel::Apic(apic) => {
+            pic::xapic::initialize_apic(
+                phys_mem_offset,
+                apic.io_apics.first().expect("No IOAPICs found!").address,
+            );
+        }
+        _ => panic!("Interrupt model not supported."),
+    }
 
     // HPET
     let hpet_location = acpi.hpet.expect("Cannot find HPET");
