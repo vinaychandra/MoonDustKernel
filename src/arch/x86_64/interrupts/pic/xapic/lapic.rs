@@ -2,12 +2,12 @@ use core::ptr;
 use x86_64::registers::model_specific::Msr;
 use x86_64::{PhysAddr, VirtAddr};
 
-/// Location for APIC Base.
+/// Location for APIC Base MSR.
 const IA32_APIC_BASE: u32 = 0x1B;
 
 /// The structure for Local APIC.
 pub struct LApic {
-    /// The baase virtual address where LApic can
+    /// The base virtual address where LApic can
     /// be accessed.
     base_virt_address: u64,
 }
@@ -76,6 +76,11 @@ impl LApic {
     }
 
     /// Initialize a periodic APIC timer.
+    /// ## Arguments
+    /// - `target_vector`: The target vector in Interrupt Vector Table.
+    /// ## Notes
+    /// https://wiki.osdev.org/APIC_timer
+    /// http://ethv.net/workshops/osdev/notes/notes-4
     pub fn initialize_apic_timer(&self, target_vector: u8) {
         let mut lvt = self.read(TIMER_LVT_REGISTER);
         // Clear target vector.
@@ -105,6 +110,7 @@ impl LApic {
 }
 
 /// Structure for a register.
+/// This is a simple way to provide strong typed access to target registers.
 pub struct LapicRegister {
     offset: u64,
 }

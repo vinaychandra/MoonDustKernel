@@ -51,12 +51,12 @@ impl HpetTimer {
             interrupt_route_capability: 0,
         };
 
-        let config = unsafe { (*inner).config.read() };
+        let config = res.get_inner().config.read();
 
         res.support_64bit = config.size_capability();
         res.support_periodic_interrupt = config.periodic_interrupt_capability();
         res.support_fsb_interrupt = config.fsb_interrupt_capability();
-        res.interrupt_route_capability = unsafe { (*inner).interrupt_route_capability.read() };
+        res.interrupt_route_capability = res.get_inner().interrupt_route_capability.read();
         res
     }
 
@@ -91,13 +91,11 @@ impl HpetTimer {
     ///
     /// Panics if the given interrupt route is not supported by this hpet timer.
     pub fn set_interrupt_route(&self, index: u32) {
-        let mut config = unsafe { (*self.inner).config.read() };
+        let mut config = self.get_inner().config.read();
         config.set_interrupt_route(index);
-        unsafe {
-            (*self.inner).config.write(config);
-        }
+        self.get_inner().config.write(config);
 
-        let config = unsafe { (*self.inner).config.read() };
+        let config = self.get_inner().config.read();
         assert!(
             config.interrupt_route() == index,
             "Illegal interrupt route (as tested). Supported routes: {}.",
@@ -107,16 +105,12 @@ impl HpetTimer {
 
     /// Set the timer comparactor value
     pub fn set_comparator_value(&self, value: u64) {
-        unsafe {
-            (*self.inner)
-                .comparator_value_low
-                .write((value & 0xFFFF_FFFF) as u32)
-        };
-        unsafe {
-            (*self.inner)
-                .comparator_value_high
-                .write((value >> 32) as u32)
-        };
+        self.get_inner()
+            .comparator_value_low
+            .write((value & 0xFFFF_FFFF) as u32);
+        self.get_inner()
+            .comparator_value_high
+            .write((value >> 32) as u32);
     }
 
     /// Set the timer accumulator value.
@@ -130,44 +124,40 @@ impl HpetTimer {
         // BODY: Because we are running on i386, this cause issue on QEMU.
         // BODY: In fact, QEMU clear the accumulator flag on every partial write.
         // BODY: The question here is: Is that normal or a bug in QEMU?
-        let mut config = unsafe { (*self.inner).config.read() };
+        let mut config = self.get_inner().config.read();
         config.set_accumulator_config(true);
-        unsafe { (*self.inner).config.write(config) };
-        unsafe {
-            (*self.inner)
-                .comparator_value_low
-                .write((value & 0xFFFF_FFFF) as u32)
-        };
+        self.get_inner().config.write(config);
+        self.get_inner()
+            .comparator_value_low
+            .write((value & 0xFFFF_FFFF) as u32);
 
-        let mut config = unsafe { (*self.inner).config.read() };
+        let mut config = self.get_inner().config.read();
         config.set_accumulator_config(true);
-        unsafe { (*self.inner).config.write(config) };
-        unsafe {
-            (*self.inner)
-                .comparator_value_high
-                .write((value >> 32) as u32)
-        };
+        self.get_inner().config.write(config);
+        self.get_inner()
+            .comparator_value_high
+            .write((value >> 32) as u32);
     }
 
     /// Set Edge Trigger.
     pub fn set_edge_trigger(&self) {
-        let mut config = unsafe { (*self.inner).config.read() };
+        let mut config = self.get_inner().config.read();
         config.set_interrupt_type(false);
-        unsafe { (*self.inner).config.write(config) };
+        self.get_inner().config.write(config);
     }
 
     /// Set Level Trigger.
     pub fn set_level_trigger(&self) {
-        let mut config = unsafe { (*self.inner).config.read() };
+        let mut config = self.get_inner().config.read();
         config.set_interrupt_type(true);
-        unsafe { (*self.inner).config.write(config) };
+        self.get_inner().config.write(config);
     }
 
     /// Set the timer in One Shot mode.
     pub fn set_one_shot_mode(&self) {
-        let mut config = unsafe { (*self.inner).config.read() };
+        let mut config = self.get_inner().config.read();
         config.set_timer_type(false);
-        unsafe { (*self.inner).config.write(config) };
+        self.get_inner().config.write(config);
     }
 
     /// Set the timer in Periodic mode.
@@ -176,27 +166,31 @@ impl HpetTimer {
     ///
     /// The timer must support periodic mode.
     pub fn set_periodic_mode(&self) {
-        let mut config = unsafe { (*self.inner).config.read() };
+        let mut config = self.get_inner().config.read();
         config.set_timer_type(true);
-        unsafe { (*self.inner).config.write(config) };
+        self.get_inner().config.write(config);
     }
 
     /// Enable interrupt.
     pub fn enable_interrupt(&self) {
-        let mut config = unsafe { (*self.inner).config.read() };
+        let mut config = self.get_inner().config.read();
         config.set_interrupt_enable(true);
-        unsafe { (*self.inner).config.write(config) };
+        self.get_inner().config.write(config);
     }
 
     /// Disable interrupt.
     pub fn disable_interrupt(&self) {
-        let mut config = unsafe { (*self.inner).config.read() };
+        let mut config = self.get_inner().config.read();
         config.set_interrupt_enable(false);
-        unsafe { (*self.inner).config.write(config) };
+        self.get_inner().config.write(config);
     }
 
     /// Determine if the interrupt is enabled.
     pub fn has_interrupt_enabled(&self) -> bool {
-        unsafe { (*self.inner).config.read().interrupt_enable() }
+        self.get_inner().config.read().interrupt_enable()
+    }
+
+    fn get_inner(&self) -> &mut HpetTimerRegister {
+        unsafe { &mut (*self.inner) }
     }
 }

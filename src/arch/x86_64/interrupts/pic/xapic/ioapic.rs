@@ -44,7 +44,7 @@ impl IOApic {
 
     /// Remap the IRQ to a target interrupt vector.
     /// `irq` : The IRQ to route.
-    /// `vector` : The target vector to route to.
+    /// `vector` : The target vector in IVT to route to.
     /// `apic_id`: The APIC id that this IRQ is mapped in.
     pub fn set_irq(&self, irq: u32, apic_id: u32, vector: u32) {
         let low_index: u32 = 0x10 + irq * 2;

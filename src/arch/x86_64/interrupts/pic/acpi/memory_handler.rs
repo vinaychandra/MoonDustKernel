@@ -21,6 +21,7 @@ impl AcpiHandler for MemoryHandler {
         physical_address: usize,
         size: usize,
     ) -> PhysicalMapping<T> {
+        // Because all of memory is already mapped, we just use that.
         let target_virtual_address: usize =
             physical_address + self.phys_mem_offset.as_u64() as usize;
 

@@ -1,9 +1,15 @@
+//! APIC ("Advanced Programmable Interrupt Controller") is the updated Intel standard for
+//! the older PIC. It is used in multiprocessor systems and is an integral part of all
+//! recent Intel (and compatible) processors. The APIC is used for sophisticated interrupt
+//! redirection, and for sending interrupts between processors.
+
 mod ioapic;
 mod lapic;
 
 use lapic::LApic;
 use x86_64::VirtAddr;
 
+/// Local APIC instance. This is a hardware available per-CPU.
 pub static mut LAPIC: Option<LApic> = None;
 
 pub fn initialize_apic(phys_mem_offset: VirtAddr) {
