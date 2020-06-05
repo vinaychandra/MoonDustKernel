@@ -6,7 +6,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceRoot}/target/x86_64-moondust/debug/moondust-kernel",
-      "cwd": "${workspaceRoot}",
+      "cwd": "${workspaceRoot}/src",
       "args": [],
       "targetArchitecture": "x64",
       "MIMode": "gdb",
