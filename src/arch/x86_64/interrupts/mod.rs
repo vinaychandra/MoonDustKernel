@@ -47,6 +47,7 @@ lazy_static! {
                 .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
         }
         idt[InterruptIndex::Timer.as_usize()].set_handler_fn(handlers::timer_interrupt_handler);
+        idt[InterruptIndex::Keyboard.as_usize()].set_handler_fn(handlers::keyboard_handler);
         idt[InterruptIndex::HpetTimer.as_usize()].set_handler_fn(handlers::hpet_timer_handler);
 
         idt
