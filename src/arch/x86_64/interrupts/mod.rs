@@ -41,6 +41,7 @@ impl InterruptIndex {
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
+        idt.page_fault.set_handler_fn(handlers::page_fault_handler);
         unsafe {
             idt.double_fault
                 .set_handler_fn(handlers::double_fault_handler)
