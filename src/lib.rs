@@ -5,6 +5,8 @@
 #![feature(asm)]
 #![feature(const_fn)]
 #![feature(const_in_array_repeat_expressions)]
+#![feature(thread_local)]
+#![feature(new_uninit)]
 
 extern crate alloc;
 

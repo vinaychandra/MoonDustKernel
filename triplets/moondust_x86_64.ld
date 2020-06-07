@@ -1,8 +1,3 @@
-PHDRS
-{
-	load PT_LOAD;
-}
-
 KERNEL_OFFSET = 0xffffe00000000000;
 
 SECTIONS {

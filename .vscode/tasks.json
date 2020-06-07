@@ -46,7 +46,8 @@
       },
       "options": {
         "cwd": "${workspaceFolder}/"
-      }
+      },
+      "problemMatcher": []
     }
   ]
 }

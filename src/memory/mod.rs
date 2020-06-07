@@ -1,3 +1,4 @@
+pub mod cpu_local;
 pub mod fixed_size_block;
 
 /// A wrapper around spin::Mutex to permit trait implementations.

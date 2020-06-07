@@ -1,5 +1,7 @@
 #![no_std]
 #![no_main]
+#![feature(thread_local)]
+#![feature(llvm_asm)]
 
 use alloc::boxed::Box;
 use bootloader::{entry_point, BootInfo};
@@ -8,6 +10,9 @@ use core::panic::PanicInfo;
 use moondust_kernel::*;
 
 extern crate alloc;
+
+#[thread_local]
+pub static mut TEST: u8 = 9;
 
 entry_point!(kernel_main);
 
@@ -25,6 +30,8 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     x86_64::instructions::interrupts::enable();
 
+    let tls_val = unsafe { TEST };
+    kernel_info!("TLS value is {}", tls_val);
     kernel_error!("kernel loop ended.");
     arch::hlt_loop()
 }
