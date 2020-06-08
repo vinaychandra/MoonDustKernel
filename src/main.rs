@@ -2,11 +2,13 @@
 #![no_main]
 #![feature(thread_local)]
 #![feature(llvm_asm)]
+#![feature(duration_constants)]
 
 use alloc::boxed::Box;
 use bootloader::{entry_point, BootInfo};
 #[cfg(not(test))]
 use core::panic::PanicInfo;
+use devices::timer::TimerFuture;
 use moondust_kernel::*;
 use tasks::{executor::Executor, Task};
 
@@ -37,8 +39,9 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     let mut executor = Executor::new();
     let spawner = executor.get_spawner();
     spawner.spawn(Task::new(example_task(41)));
+    spawner.spawn(Task::new(crate::devices::timer::timer_task()));
+    spawner.spawn(Task::new(timer_test()));
     spawner.spawn(Task::new(example_task(42)));
-    spawner.spawn(Task::new(example_task(43)));
     executor.run();
 }
 
@@ -64,4 +67,13 @@ async fn example_task(value: u8) {
         }
     }
     kernel_info!("async done: {}", value);
+}
+
+async fn timer_test() {
+    kernel_info!("Before timer");
+    loop {
+        let future = TimerFuture::new(core::time::Duration::new(5, 0));
+        future.await;
+        kernel_info!("Uptime: {:?}", crate::devices::timer::up_time());
+    }
 }

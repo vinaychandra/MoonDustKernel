@@ -4,7 +4,6 @@ mod pic;
 
 use super::gdt;
 use crate::*;
-use lazy_static::lazy_static;
 use x86_64::{
     structures::idt::{InterruptDescriptorTable, InterruptStackFrame},
     VirtAddr,

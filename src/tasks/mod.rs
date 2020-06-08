@@ -5,7 +5,6 @@ mod task;
 pub use task::Task;
 
 use id_generator::IdGenerator;
-use lazy_static::lazy_static;
 
 lazy_static! {
     /// TaskIdGenerator for kernel tasks.

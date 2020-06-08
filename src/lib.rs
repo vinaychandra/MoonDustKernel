@@ -8,6 +8,9 @@
 #![feature(thread_local)]
 #![feature(new_uninit)]
 #![feature(wake_trait)]
+#![feature(const_btree_new)]
+#![feature(map_first_last)]
+#![feature(duration_constants)]
 
 extern crate alloc;
 
@@ -15,6 +18,10 @@ pub mod arch;
 pub mod devices;
 pub mod log;
 pub mod memory;
+pub mod tasks;
+
+#[macro_use]
+extern crate lazy_static;
 
 /// Initialize logs for the kernel.
 pub fn initialize_logging() {

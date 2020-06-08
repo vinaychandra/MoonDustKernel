@@ -16,7 +16,8 @@ pub extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: &mut Interru
 }
 
 pub extern "x86-interrupt" fn hpet_timer_handler(_stack_frame: &mut InterruptStackFrame) {
-    kernel_info!("TICK");
+    // Send notification.
+    crate::devices::timer::add_notification();
 
     unsafe {
         let lapic = &super::super::pic::xapic::LAPIC;
