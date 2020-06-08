@@ -1,6 +1,6 @@
 use crate::*;
 use bootloader::BootInfo;
-use x86_64::VirtAddr;
+use x86_64::{instructions::interrupts::enable_interrupts_and_hlt, VirtAddr};
 
 mod _console_vga;
 mod gdt;
@@ -12,6 +12,18 @@ pub fn hlt_loop() -> ! {
     loop {
         x86_64::instructions::hlt();
     }
+}
+
+pub fn enable_interrupts_and_halt() {
+    enable_interrupts_and_hlt();
+}
+
+pub fn disable_interrupts() {
+    x86_64::instructions::interrupts::disable();
+}
+
+pub fn enable_interrupts() {
+    x86_64::instructions::interrupts::enable();
 }
 
 /// Architecture level initialization.

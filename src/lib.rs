@@ -7,10 +7,12 @@
 #![feature(const_in_array_repeat_expressions)]
 #![feature(thread_local)]
 #![feature(new_uninit)]
+#![feature(wake_trait)]
 
 extern crate alloc;
 
 pub mod arch;
+pub mod devices;
 pub mod log;
 pub mod memory;
 

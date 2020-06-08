@@ -8,6 +8,7 @@ use bootloader::{entry_point, BootInfo};
 #[cfg(not(test))]
 use core::panic::PanicInfo;
 use moondust_kernel::*;
+use tasks::{executor::Executor, Task};
 
 extern crate alloc;
 
@@ -32,8 +33,13 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     let tls_val = unsafe { TEST };
     kernel_info!("TLS value is {}", tls_val);
-    kernel_error!("kernel loop ended.");
-    arch::hlt_loop()
+
+    let mut executor = Executor::new();
+    let spawner = executor.get_spawner();
+    spawner.spawn(Task::new(example_task(41)));
+    spawner.spawn(Task::new(example_task(42)));
+    spawner.spawn(Task::new(example_task(43)));
+    executor.run();
 }
 
 /// This function is called on panic.
@@ -42,4 +48,20 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 fn panic(info: &PanicInfo) -> ! {
     kernel_error!("PANIC: {}", info);
     arch::hlt_loop()
+}
+
+async fn async_number(value: u8) -> u8 {
+    value + 1
+}
+
+async fn example_task(value: u8) {
+    let mut number = value;
+    loop {
+        number = async_number(number).await;
+        kernel_info!("async number: {} {}", value, number);
+        if number % 5 == 0 {
+            break;
+        }
+    }
+    kernel_info!("async done: {}", value);
 }

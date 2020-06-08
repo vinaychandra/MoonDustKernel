@@ -33,7 +33,7 @@ pub unsafe fn init(hpet_address: VirtAddr) {
         panic!("HPET timer doesn't support periodic interrupt.")
     }
 
-    let irq_period_ms = 1000;
+    let irq_period_ms = 1000 * 10;
     let irq_period_ns = irq_period_ms * 1_000_000;
     let irq_period_fs = irq_period_ns * 1_000_000;
     kernel_info!("HPET frequency: {} Hz", hpet_instance.get_frequency());
@@ -43,9 +43,10 @@ pub unsafe fn init(hpet_address: VirtAddr) {
 
     // IO-APIC expects edge triggering by default.
     main_timer.set_edge_trigger();
-    main_timer.set_periodic_mode();
+    // main_timer.set_periodic_mode();
     main_timer.enable_interrupt();
-    main_timer.set_accumulator_value(irq_period_tick);
+    // main_timer.set_accumulator_value(irq_period_tick);
+    // main_timer.set_comparator_value(irq_period_tick);
     main_timer.set_comparator_value(irq_period_tick);
 
     main_timer.set_interrupt_route(8);
