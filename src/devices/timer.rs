@@ -1,3 +1,16 @@
+//! # Kernel timer support
+//!
+//! This module requires two function to be provided by the architecture.
+//! A `TIME_PROVIDER` (`set_timer_provider`) class provides current time in ns. This is a monotonic
+//! increasing timer that can start at any value.
+//! A `TIMER_REGISTRAR` (`set_timer_registrar`) is a function provided by the architecture
+//! that would allow the timer to register a callback at a provided time. After the provided time,
+//! the architectural implementation should call `add_notification`. This function will
+//! resume the different completed timers.
+//! `add_notification` can be called any number of times but for best performance,
+//! it should be only called when needed as requested by the calls to the `TIMER_REGISTRAR`
+//! function.
+
 use crate::*;
 use alloc::{collections::BTreeMap, sync::Arc};
 use conquer_once::spin::OnceCell;
@@ -224,6 +237,8 @@ impl Stream for TimerStream {
     }
 }
 
+/// Get the uptime for the system. This value is calculated since the
+/// architecture has setup the timers.
 pub fn up_time() -> Duration {
     let current_value = TIME_PROVIDER.get().unwrap()();
     let diff = current_value - START_COUNTER.get().unwrap();
