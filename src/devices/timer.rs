@@ -42,13 +42,53 @@ struct TimerSharedState {
     /// `TimerFuture`'s task to wake up, see that `completed = true`, and
     /// move forward.
     waker: Option<Waker>,
+
+    /// Duration for the timer.
+    duration: Duration,
+
+    /// Is the callback setup
+    enabled: bool,
 }
 
 impl Future for TimerFuture {
     type Output = ();
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        // Look at the shared state to see if the timer has already completed.
         let mut shared_state = self.shared_state.lock();
+
+        // First run. Enable the callback.
+        if !shared_state.enabled {
+            // Convert the given time into nano seconds.
+            // HPET Currently only supports u64 ticks as max value.
+            let nanos: u64;
+            {
+                nanos = u64::try_from(shared_state.duration.as_nanos())
+                    .expect("Cannot support more nanoseconds than u64 max");
+            }
+
+            let current_value: u64 = TIME_PROVIDER.get().unwrap()();
+
+            // Note this can overflow.
+            let target_value = current_value + nanos;
+
+            // Store this task in a btree.
+            {
+                let mut waiting_tasks = WAITING_TASKS.lock();
+                waiting_tasks.insert(target_value, self.shared_state.clone());
+            }
+
+            // Enable this
+            shared_state.enabled = true;
+
+            // Schedule a wake up if needed
+            TIMER_REGISTRAR
+                .get()
+                .expect("Time Provider should only be initialized once")(
+                target_value,
+                ALLOWED_TIMER_SKEW,
+            );
+        }
+
+        // Look at the shared state to see if the timer has already completed.
         if shared_state.completed {
             Poll::Ready(())
         } else {
@@ -77,29 +117,9 @@ impl TimerFuture {
         let shared_state = Arc::new(Mutex::new(TimerSharedState {
             completed: false,
             waker: None,
+            duration,
+            enabled: false,
         }));
-
-        // Convert the given time into nano seconds.
-        // HPET Currently only supports u64 ticks as max value.
-        let nanos = u64::try_from(duration.as_nanos())
-            .expect("Cannot support more nanoseconds than u64 max");
-
-        let current_value = TIME_PROVIDER.get().unwrap()();
-
-        // Note this can overflow.
-        let target_value = current_value + nanos;
-
-        // Store this task in a btree.
-        let mut waiting_tasks = WAITING_TASKS.lock();
-        waiting_tasks.insert(target_value, shared_state.clone());
-
-        // Schedule a wake up if needed
-        TIMER_REGISTRAR
-            .get()
-            .expect("Time Provider should only be initialized once")(
-            target_value,
-            ALLOWED_TIMER_SKEW,
-        );
 
         TimerFuture { shared_state }
     }
