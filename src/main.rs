@@ -2,9 +2,11 @@
 #![no_main]
 #![feature(thread_local)]
 #![feature(llvm_asm)]
+#![feature(async_closure)]
 #![feature(duration_constants)]
 
-use alloc::boxed::Box;
+use crate::sync::Mutex;
+use alloc::{boxed::Box, sync::Arc};
 use bootloader::{entry_point, BootInfo};
 #[cfg(not(test))]
 use core::panic::PanicInfo;
@@ -38,10 +40,13 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     let mut executor = Executor::new();
     let spawner = executor.get_spawner();
-    spawner.spawn(Task::new(example_task(41)));
+
+    let m = Arc::new(Mutex::new(0));
+    let m2 = m.clone();
     spawner.spawn(Task::new(crate::devices::timer::timer_task()));
-    spawner.spawn(Task::new(timer_test()));
-    spawner.spawn(Task::new(example_task(42)));
+    spawner.spawn(Task::new(mutex1(m)));
+    spawner.spawn(Task::new(mutex2(m2)));
+
     executor.run();
 }
 
@@ -53,27 +58,16 @@ fn panic(info: &PanicInfo) -> ! {
     arch::hlt_loop()
 }
 
-async fn async_number(value: u8) -> u8 {
-    value + 1
+async fn mutex1(m: Arc<Mutex<i32>>) {
+    kernel_info!("1");
+    let _lock = m.lock().await;
+    kernel_info!("2");
+    TimerFuture::new(core::time::Duration::new(1, 0)).await;
+    kernel_info!("4");
 }
 
-async fn example_task(value: u8) {
-    let mut number = value;
-    loop {
-        number = async_number(number).await;
-        kernel_info!("async number: {} {}", value, number);
-        if number % 5 == 0 {
-            break;
-        }
-    }
-    kernel_info!("async done: {}", value);
-}
-
-async fn timer_test() {
-    kernel_info!("Before timer");
-    loop {
-        let future = TimerFuture::new(core::time::Duration::new(5, 0));
-        future.await;
-        kernel_info!("Uptime: {:?}", crate::devices::timer::up_time());
-    }
+async fn mutex2(m: Arc<Mutex<i32>>) {
+    kernel_info!("3");
+    let _lock = m.lock().await;
+    kernel_info!("5");
 }

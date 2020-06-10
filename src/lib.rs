@@ -18,6 +18,7 @@ pub mod arch;
 pub mod devices;
 pub mod log;
 pub mod memory;
+pub mod sync;
 pub mod tasks;
 
 #[macro_use]

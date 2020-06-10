@@ -1,5 +1,6 @@
 pub mod cpu_local;
 pub mod fixed_size_block;
+pub mod slab;
 
 /// A wrapper around spin::Mutex to permit trait implementations.
 pub struct Locked<A> {
