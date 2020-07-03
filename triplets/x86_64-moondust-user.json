@@ -13,16 +13,13 @@
   "disable-redzone": true,
   "features": "-mmx,-sse,+soft-float",
   "dynamic-linking": false,
-  "relocation-model": "static",
+  "relocation-model": "pic",
   "code-model": "kernel",
   "eliminate-frame-pointer": false,
   "exe-suffix": "",
   "has-rpath": false,
   "no-compiler-rt": true,
   "no-default-libraries": true,
-  "position-independent-executables": false,
-  "has-elf-tls": true,
-  "pre-link-args": {
-    "ld.lld": ["--script=./triplets/moondust_x86_64.ld", "./target/font.o"]
-  }
+  "position-independent-executables": true,
+  "has-elf-tls": true
 }

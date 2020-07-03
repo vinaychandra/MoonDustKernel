@@ -1,3 +1,0 @@
-[submodule "others/bootloader"]
-	path = others/x86_64/bootloader
-	url = https://github.com/vinaychandra/bootloader

@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch with GDB",
+      "name": "Launch with GDB (bios)",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceRoot}/target/x86_64-moondust/debug/moondust-kernel",
@@ -34,7 +34,43 @@
           "description": "Load binary"
         }
       ],
-      "preLaunchTask": "Launch QEMU",
+      "preLaunchTask": "Launch QEMU (bios)",
+      "postDebugTask": "Close QEMU"
+    },
+    {
+      "name": "Launch with GDB (efi)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceRoot}/target/x86_64-moondust/debug/moondust-kernel",
+      "cwd": "${workspaceRoot}/src",
+      "args": [],
+      "targetArchitecture": "x64",
+      "MIMode": "gdb",
+      "osx": {
+        "miDebuggerPath": "/Users/vinay/Coding/other/rust-os-gdb/bin/rust-gdb"
+      },
+      "linux": {
+        "miDebuggerPath": "/home/vinay/.cargo/bin/rust-gdb"
+      },
+      "miDebuggerArgs": "",
+      "customLaunchSetupCommands": [
+        {
+          "text": "target remote localhost:1234",
+          "description": "Connect to QEMU remote debugger"
+        }
+      ],
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "text": "file ${workspaceRoot}/target/x86_64-moondust/debug/moondust-kernel",
+          "description": "Load binary"
+        }
+      ],
+      "preLaunchTask": "Launch QEMU (efi)",
       "postDebugTask": "Close QEMU"
     }
   ]

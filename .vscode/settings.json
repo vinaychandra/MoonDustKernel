@@ -1,11 +1,5 @@
 {
-    "editor.formatOnSave": true,
-    "editor.rulers": [
-        100
-    ],
-    "rust-analyzer.checkOnSave.overrideCommand": [
-        "make",
-        "check"
-    ],
-    "debug.allowBreakpointsEverywhere": true
+  "editor.formatOnSave": true,
+  "editor.rulers": [100],
+  "debug.allowBreakpointsEverywhere": true
 }

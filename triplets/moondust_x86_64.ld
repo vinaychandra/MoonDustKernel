@@ -1,55 +1,49 @@
-KERNEL_OFFSET = 0xffffe00000000000;
+KERNEL_OFFSET = 0xfffffffff8000000;
 
-SECTIONS {
+PHDRS
+{
+  boot PT_LOAD FILEHDR PHDRS;                                /* one single loadable segment */
+  tls PT_TLS;
+}
+SECTIONS
+{
     . = KERNEL_OFFSET;
+    mmio    = .; . += 0x4000000;
+    fb      = .; . += 0x3E00000;
+    bootboot    = .; . += 4096;
+    environment = .; . += 4096;
 
-    . += SIZEOF_HEADERS;
-    . = ALIGN(4096);
-
-    .text : AT(ADDR(.text) - KERNEL_OFFSET) {
-        __text_start = .;
-        *(.text*)
+    .text . + SIZEOF_HEADERS : AT(ADDR(.text) - . + SIZEOF_HEADERS) {
+        KEEP(*(.text.boot)) *(.text .text.* .gnu.linkonce.t*)   /* code */
 		. = ALIGN(4096);
-        __text_end = .;
-    }
+    } :boot
 
-	.rodata : AT(ADDR(.rodata) - KERNEL_OFFSET) {
-        __rodata_start = .;
+	.rodata : {
         *(.rodata*)
 		. = ALIGN(4096);
-        __rodata_end = .;
-    }
+    } :boot
 
-    .data : AT(ADDR(.data) - KERNEL_OFFSET) {
-        __data_start = .;
+    .data : {
         *(.data*)
 		. = ALIGN(4096);
-        __data_end = .;
-        __bss_start = .;
+    } :boot
+
+    .bss : {
         *(.bss*)
         . = ALIGN(4096);
-        __bss_end = .;
-    }
+    } :boot
 
-    .tdata : AT(ADDR(.tdata) - KERNEL_OFFSET) {
+    .tdata : {
         __tdata_start = .;
         *(.tdata*)
-        . = ALIGN(4096);
+		. = ALIGN(4096);
         __tdata_end = .;
         __tbss_start = .;
         *(.tbss*)
         . += 8;
         . = ALIGN(4096);
         __tbss_end = .;
-    }
+    } :boot :tls
 
-    __end = .;
-
-    /DISCARD/ : {
-        *(.comment*)
-        *(.eh_frame*)
-        *(.gcc_except_table*)
-        *(.note*)
-        *(.rel.eh_frame*)
-    }
+    /DISCARD/ : { *(.eh_frame) *(.comment) }
 }

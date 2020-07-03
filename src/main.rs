@@ -1,73 +1,79 @@
 #![no_std]
 #![no_main]
+#![feature(abi_x86_interrupt)]
+#![feature(alloc_error_handler)]
+#![feature(asm)]
+#![feature(const_fn)]
+#![feature(const_in_array_repeat_expressions)]
+#![feature(naked_functions)]
 #![feature(thread_local)]
-#![feature(llvm_asm)]
-#![feature(async_closure)]
-#![feature(duration_constants)]
 
-use crate::sync::Mutex;
-use alloc::{boxed::Box, sync::Arc};
-use bootloader::{entry_point, BootInfo};
 #[cfg(not(test))]
 use core::panic::PanicInfo;
-use devices::timer::TimerFuture;
-use moondust_kernel::*;
-use tasks::{executor::Executor, Task};
 
-extern crate alloc;
+#[allow(dead_code)]
+#[allow(non_snake_case)]
+#[allow(non_camel_case_types)]
+mod bootboot;
+
+// Required for -Z build-std flag.
+extern crate rlibc;
 
 #[thread_local]
 pub static mut TEST: u8 = 9;
 
-entry_point!(kernel_main);
-
 /// Entry point for the Operating System.
 #[no_mangle] // don't mangle the name of this function
-fn kernel_main(boot_info: &'static BootInfo) -> ! {
-    // Initialize logging so that data can be seen on screen
-    moondust_kernel::initialize_logging();
-
-    // Initialize architecture
-    arch::init(boot_info);
-
-    // test box
-    let _test = Box::new(10u64);
-
-    x86_64::instructions::interrupts::enable();
-
-    let tls_val = unsafe { TEST };
-    kernel_info!("TLS value is {}", tls_val);
-
-    let mut executor = Executor::new();
-    let spawner = executor.get_spawner();
-
-    let m = Arc::new(Mutex::new(0));
-    let m2 = m.clone();
-    spawner.spawn(Task::new(crate::devices::timer::timer_task()));
-    spawner.spawn(Task::new(mutex1(m)));
-    spawner.spawn(Task::new(mutex2(m2)));
-
-    executor.run();
+fn _start() -> ! {
+    puts("MootDust Kernel: Pre-Init...");
+    loop {}
 }
 
 /// This function is called on panic.
 #[cfg(not(test))]
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    kernel_error!("PANIC: {}", info);
-    arch::hlt_loop()
+fn panic(_info: &PanicInfo) -> ! {
+    puts("====== KERNEL_PANIC ======");
+    loop {}
 }
 
-async fn mutex1(m: Arc<Mutex<i32>>) {
-    kernel_info!("1");
-    let _lock = m.lock().await;
-    kernel_info!("2");
-    TimerFuture::new(core::time::Duration::new(1, 0)).await;
-    kernel_info!("4");
-}
+fn puts(string: &'static str) {
+    use bootboot::*;
+    unsafe {
+        let font: *mut bootboot::psf2_t = &_binary_font_psf_start as *const u64 as *mut psf2_t;
+        let (mut kx, mut line, mut mask, mut offs): (u32, u64, u64, u32);
+        kx = 0;
+        let bpl = ((*font).width + 7) / 8;
 
-async fn mutex2(m: Arc<Mutex<i32>>) {
-    kernel_info!("3");
-    let _lock = m.lock().await;
-    kernel_info!("5");
+        for s in string.bytes() {
+            let glyph_a: *mut u8 = (font as u64 + (*font).headersize as u64) as *mut u8;
+            let mut glyph: *mut u8 = glyph_a.offset(
+                (if s > 0 && (s as u32) < (*font).numglyph {
+                    s as u32
+                } else {
+                    0
+                } * ((*font).bytesperglyph)) as isize,
+            );
+            offs = kx * ((*font).width + 1) * 4;
+            for _y in 0..(*font).height {
+                line = offs as u64;
+                mask = 1 << ((*font).width - 1);
+                for _x in 0..(*font).width {
+                    let target_location = (&bootboot::fb as *const u8 as u64 + line) as *mut u32;
+                    let mut target_value: u32 = 0;
+                    if (*glyph as u64) & (mask) > 0 {
+                        target_value = 0xFFFFFF;
+                    }
+                    *target_location = target_value;
+                    mask >>= 1;
+                    line += 4;
+                }
+                let target_location = (&bootboot::fb as *const u8 as u64 + line) as *mut u32;
+                *target_location = 0;
+                glyph = glyph.offset(bpl as isize);
+                offs += bootboot.fb_scanline;
+            }
+            kx += 1;
+        }
+    }
 }
