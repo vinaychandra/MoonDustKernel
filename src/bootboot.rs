@@ -769,7 +769,7 @@ impl BOOTBOOT {
 
 impl MMapEnt {
     pub fn end_address(&self) -> u64 {
-        self.ptr + self.size
+        self.ptr + self.size() as u64
     }
 }
 
