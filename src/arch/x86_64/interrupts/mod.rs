@@ -32,25 +32,19 @@ impl InterruptIndex {
     }
 }
 
-lazy_static! {
-    static ref IDT: InterruptDescriptorTable = {
-        let mut idt = InterruptDescriptorTable::new();
-        unsafe {
-            idt.double_fault
-                .set_handler_fn(double_fault_handler)
-                .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
-        }
-
-        idt
-    };
-}
+static mut IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
 
 /// Initialize interrupts
 /// - Disable PIC
 /// - Enable APIC/xAPIC
 /// - Enable HPET
 pub fn initialize(_phys_mem_offset: VirtAddr) {
-    IDT.load();
+    unsafe {
+        IDT.double_fault
+            .set_handler_fn(double_fault_handler)
+            .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
+        IDT.load();
+    }
 }
 
 /// Handler than be used for non-standard faults.
@@ -72,7 +66,7 @@ extern "x86-interrupt" fn unhandled_fault_noerr(stack_frame: &mut InterruptStack
     crate::arch::hlt_loop();
 }
 
-pub extern "x86-interrupt" fn double_fault_handler(
+extern "x86-interrupt" fn double_fault_handler(
     stack_frame: &mut InterruptStackFrame,
     error_code: u64,
 ) -> ! {

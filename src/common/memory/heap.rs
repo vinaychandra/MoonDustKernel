@@ -3,7 +3,7 @@ use super::{
         fixed_size_block::FixedSizeBlockAllocator,
         physical_memory_allocator::IPhysicalMemoryAllocator,
     },
-    paging::{MapperPermissions, MemoryMapper},
+    paging::{IMemoryMapper, MapperPermissions},
     Locked,
 };
 use crate::arch::globals;
@@ -14,8 +14,8 @@ static KERNEL_ALLOCATOR: Locked<FixedSizeBlockAllocator> =
 
 /// Initialize the heap.
 pub fn initialize_heap(
-    mapper: &mut impl MemoryMapper,
-    frame_allocator: &mut impl IPhysicalMemoryAllocator,
+    mapper: &mut impl IMemoryMapper,
+    frame_allocator: &mut dyn IPhysicalMemoryAllocator,
 ) -> Result<(), &'static str> {
     mapper.map_with_alloc(
         globals::KERNEL_HEAP_START as *const u8,

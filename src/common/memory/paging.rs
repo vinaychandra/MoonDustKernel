@@ -1,24 +1,24 @@
 use super::allocator::physical_memory_allocator::IPhysicalMemoryAllocator;
 
 /// A memory mapper used to map virtual memory.
-pub trait MemoryMapper {
+pub trait IMemoryMapper {
     /// Map a virtual address to physical address and the given size.
-    fn map<AllocatorType: IPhysicalMemoryAllocator>(
+    fn map(
         &mut self,
         phys_addr: *const u8,
         virt_addr: *const u8,
         size: usize,
         permissions: MapperPermissions,
-        allocator: &AllocatorType,
+        allocator: &dyn IPhysicalMemoryAllocator,
     ) -> Result<(), &'static str>;
 
     /// Map a virtual address and the given size.
-    fn map_with_alloc<AllocatorType: IPhysicalMemoryAllocator>(
+    fn map_with_alloc(
         &mut self,
         virt_addr: *const u8,
         size: usize,
         permissions: MapperPermissions,
-        allocator: &AllocatorType,
+        allocator: &dyn IPhysicalMemoryAllocator,
     ) -> Result<(), &'static str>;
 
     /// Unmap a virtual address and return it's physical address and amount of data unmapped.
@@ -30,6 +30,8 @@ pub trait MemoryMapper {
     /// Get the root page table that is denoted by this mapper.
     fn get_page_table(&self) -> *const u8;
 }
+
+pub trait IPageTable {}
 
 bitflags! {
     pub struct MapperPermissions : u8 {

@@ -19,6 +19,7 @@ mod bootboot;
 
 pub mod arch;
 pub mod common;
+pub mod ramdisk;
 
 // Required for -Z build-std flag.
 extern crate rlibc;
@@ -28,6 +29,7 @@ extern crate lazy_static;
 extern crate log;
 #[macro_use]
 extern crate bitflags;
+#[macro_use]
 extern crate alloc;
 
 #[thread_local]
@@ -44,6 +46,15 @@ fn _start() -> ! {
 /// This function should not return.
 pub fn main_bsp() -> ! {
     puts("MoonDust Kernel: Main function");
+
+    unsafe {
+        let ramdisk = ramdisk::ustar::UStarArchive::new(
+            bootboot::bootboot.initrd_ptr as *const u8,
+            bootboot::bootboot.initrd_size as usize,
+        );
+
+        info!(target: "main", "initrd image is {}", ramdisk);
+    }
     arch::hlt_loop();
 }
 

@@ -1,4 +1,4 @@
-KERNEL_OFFSET = 0xfffffffff8000000;
+KERNEL_OFFSET = 0xfffffffff0000000;
 
 PHDRS
 {

@@ -2,6 +2,7 @@ pub mod gdt;
 pub mod globals;
 pub mod interrupts;
 pub mod memory;
+pub mod process;
 pub mod serial;
 
 use crate::{
@@ -9,7 +10,7 @@ use crate::{
     common::memory::{
         allocator::{boot_frame_allocator::BootFrameAllocator, physical_memory_allocator},
         heap,
-        stack::Stack,
+        stack::{self, Stack},
     },
 };
 use core::cell::UnsafeCell;
@@ -95,6 +96,13 @@ pub fn initialize_architecture_bsp_stack() -> ! {
         info!(target: "initialize_architecture_bsp", "Initialize interrupts");
         interrupts::initialize(VirtAddr::new(globals::MEM_MAP_LOCATION));
         info!(target: "initialize_architecture_bsp", "interrupts ready");
+    }
+
+    {
+        info!(target: "initialize_architecture_bsp", "Initialize stack provider");
+        let frame_allocator = physical_memory_allocator::get_physical_memory_allocator();
+        stack::initialize_stack_provider_bsp(&mut mapper, frame_allocator);
+        info!(target: "initialize_architecture_bsp", "Stack provider initialized");
     }
 
     crate::main_bsp();

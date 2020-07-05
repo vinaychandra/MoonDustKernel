@@ -1,24 +1,24 @@
 use crate::common::memory::{
     allocator::physical_memory_allocator::IPhysicalMemoryAllocator,
-    paging::{MapperPermissions, MemoryMapper},
+    paging::{IMemoryMapper, IPageTable, MapperPermissions},
 };
 use core::alloc::Layout;
 use x86_64::{
     structures::paging::{
-        page::PageRange, FrameAllocator, Mapper, MapperAllSizes, OffsetPageTable, Page,
+        page::PageRange, FrameAllocator, Mapper, MapperAllSizes, OffsetPageTable, Page, PageTable,
         PageTableFlags, PhysFrame, Size4KiB,
     },
     PhysAddr, VirtAddr,
 };
 
-impl<'a> MemoryMapper for OffsetPageTable<'a> {
-    fn map<AllocatorType: IPhysicalMemoryAllocator>(
+impl<'a> IMemoryMapper for OffsetPageTable<'a> {
+    fn map(
         &mut self,
         phys_addr: *const u8,
         virt_addr: *const u8,
         size: usize,
         permissions: MapperPermissions,
-        allocator: &AllocatorType,
+        allocator: &dyn IPhysicalMemoryAllocator,
     ) -> Result<(), &'static str> {
         debug_assert!(size % 4096 == 0, "Size must be page aligned");
 
@@ -61,12 +61,12 @@ impl<'a> MemoryMapper for OffsetPageTable<'a> {
         Ok(())
     }
 
-    fn map_with_alloc<AllocatorType: IPhysicalMemoryAllocator>(
+    fn map_with_alloc(
         &mut self,
         virt_addr: *const u8,
         size: usize,
         permissions: MapperPermissions,
-        allocator: &AllocatorType,
+        allocator: &dyn IPhysicalMemoryAllocator,
     ) -> Result<(), &'static str> {
         debug_assert!(size % 4096 == 0, "Size must be page aligned");
 
@@ -136,7 +136,7 @@ impl<'a> MemoryMapper for OffsetPageTable<'a> {
 }
 
 pub fn get_frame_allocator(
-    allocator: &impl IPhysicalMemoryAllocator,
+    allocator: &dyn IPhysicalMemoryAllocator,
 ) -> impl FrameAllocator<Size4KiB> + '_ {
     PhysicalMemoryAllocatorWrapper { allocator }
 }
@@ -152,3 +152,5 @@ unsafe impl<'a> FrameAllocator<Size4KiB> for PhysicalMemoryAllocatorWrapper<'a> 
         Some(PhysFrame::from_start_address(PhysAddr::new(addr as u64)).unwrap())
     }
 }
+
+impl IPageTable for PageTable {}

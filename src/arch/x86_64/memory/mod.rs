@@ -7,6 +7,7 @@ use x86_64::{
 
 pub mod paging;
 pub mod stack;
+pub mod tables;
 
 /// Initialize a new OffsetPageTable for bootstrap processor.
 /// This moves the existing mem map to a arch dependant location as well.
