@@ -6,6 +6,7 @@
 #![feature(const_fn)]
 #![feature(const_in_array_repeat_expressions)]
 #![feature(naked_functions)]
+#![feature(new_uninit)]
 #![feature(thread_local)]
 
 #[cfg(not(test))]
@@ -16,8 +17,18 @@ use core::panic::PanicInfo;
 #[allow(non_camel_case_types)]
 mod bootboot;
 
+pub mod arch;
+pub mod common;
+
 // Required for -Z build-std flag.
 extern crate rlibc;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate bitflags;
+extern crate alloc;
 
 #[thread_local]
 pub static mut TEST: u8 = 9;
@@ -26,15 +37,22 @@ pub static mut TEST: u8 = 9;
 #[no_mangle] // don't mangle the name of this function
 fn _start() -> ! {
     puts("MootDust Kernel: Pre-Init...");
-    loop {}
+    arch::initialize_architecture_bsp();
 }
 
 /// This function is called on panic.
 #[cfg(not(test))]
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    error!("Panic: {}", info);
     puts("====== KERNEL_PANIC ======");
     loop {}
+}
+
+#[alloc_error_handler]
+#[cfg(not(test))]
+fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
+    panic!("allocation error: {:?}", layout)
 }
 
 fn puts(string: &'static str) {
