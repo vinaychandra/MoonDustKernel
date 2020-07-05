@@ -1,5 +1,6 @@
 pub mod gdt;
 pub mod globals;
+pub mod interrupts;
 pub mod memory;
 pub mod serial;
 
@@ -15,7 +16,7 @@ use core::cell::UnsafeCell;
 use log::LevelFilter;
 use serial::SerialLogger;
 use spin::Mutex;
-use x86_64::{registers::control::EferFlags, structures::paging::OffsetPageTable};
+use x86_64::{registers::control::EferFlags, structures::paging::OffsetPageTable, VirtAddr};
 
 static LOGGER: SerialLogger = SerialLogger;
 
@@ -90,7 +91,13 @@ pub fn initialize_architecture_bsp_stack() -> ! {
         info!(target: "initialize_architecture_bsp", "GDT ready");
     }
 
-    loop {}
+    {
+        info!(target: "initialize_architecture_bsp", "Initialize interrupts");
+        interrupts::initialize(VirtAddr::new(globals::MEM_MAP_LOCATION));
+        info!(target: "initialize_architecture_bsp", "interrupts ready");
+    }
+
+    crate::main_bsp();
 }
 
 /// Halt the CPU until next interrupt.

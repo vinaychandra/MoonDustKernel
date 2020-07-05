@@ -40,6 +40,13 @@ fn _start() -> ! {
     arch::initialize_architecture_bsp();
 }
 
+/// Main Function on bootstrap processor.
+/// This function should not return.
+pub fn main_bsp() -> ! {
+    puts("MoonDust Kernel: Main function");
+    arch::hlt_loop();
+}
+
 /// This function is called on panic.
 #[cfg(not(test))]
 #[panic_handler]
