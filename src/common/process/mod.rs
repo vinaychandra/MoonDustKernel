@@ -1,13 +1,13 @@
-use super::memory::{
-    paging::{IMemoryMapper, IPageTable},
-    stack::Stack,
-};
-use alloc::boxed::Box;
+mod elf_loader;
+pub mod id_generator;
+mod process;
+pub mod single_core_executor;
+pub mod task;
 
-pub struct Process {
-    pub mapper: Box<dyn IMemoryMapper>,
-    pub kernel_stack: Stack,
-    pub page_table: Box<dyn IPageTable>,
+use id_generator::IdGenerator;
+pub use process::*;
+
+lazy_static! {
+    /// TaskIdGenerator for kernel tasks
+    pub static ref TASK_ID_GENERATOR: IdGenerator = IdGenerator::new(65535, 128);
 }
-
-impl Process {}

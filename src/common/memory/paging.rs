@@ -31,11 +31,13 @@ pub trait IMemoryMapper {
     fn get_page_table(&self) -> *const u8;
 }
 
-pub trait IPageTable {}
+pub trait IPageTable {
+    fn get_addr(&self) -> *const dyn IPageTable;
+}
 
 bitflags! {
     pub struct MapperPermissions : u8 {
-        // const READ      = 0b0000_0001;
+        const READ      = 0b0000_0000;
         const WRITE     = 0b0000_0010;
         const EXECUTE   = 0b0000_0100;
         const RING_3    = 0b0000_1000;

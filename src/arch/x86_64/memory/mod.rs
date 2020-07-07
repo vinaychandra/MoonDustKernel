@@ -1,8 +1,12 @@
 use super::globals;
 use crate::common::memory;
+use memory::allocator::physical_memory_allocator;
+use physical_memory_allocator::IPhysicalMemoryAllocator;
 use x86_64::{
-    structures::paging::{OffsetPageTable, PageTable},
-    VirtAddr,
+    structures::paging::{
+        Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, PhysFrame, Size1GiB,
+    },
+    PhysAddr, VirtAddr,
 };
 
 pub mod paging;
@@ -11,11 +15,33 @@ pub mod tables;
 
 /// Initialize a new OffsetPageTable for bootstrap processor.
 /// This moves the existing mem map to a arch dependant location as well.
-pub fn init_bsp() -> OffsetPageTable<'static> {
+pub fn init_bsp(allocator: &mut dyn IPhysicalMemoryAllocator) -> OffsetPageTable<'static> {
     unsafe {
         let original_offset = VirtAddr::new(0x0);
         let bsp_page_table = active_level_4_table(original_offset);
-        bsp_page_table[510] = bsp_page_table[0].clone(); // Copy the original identity mapping to 0xFFFF_FF00_0000_0000
+
+        let mut mapper = OffsetPageTable::new(bsp_page_table, original_offset);
+        let mut allocator = paging::get_frame_allocator_zeroed(allocator, 0);
+        // 512 GB memory map.
+        for i in 0..512 {
+            let page = Page::from_start_address(VirtAddr::new(
+                (i * 1024 * 1024 * 1024) + globals::MEM_MAP_LOCATION,
+            ))
+            .unwrap();
+
+            let frame =
+                PhysFrame::<Size1GiB>::from_start_address(PhysAddr::new(i * 1024 * 1024 * 1024))
+                    .unwrap();
+            mapper
+                .map_to(
+                    page,
+                    frame,
+                    PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
+                    &mut allocator,
+                )
+                .unwrap()
+                .flush();
+        }
 
         let final_offset = VirtAddr::new(globals::MEM_MAP_LOCATION);
         let bsp_page_table = active_level_4_table(final_offset);

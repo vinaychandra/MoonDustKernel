@@ -1,12 +1,17 @@
-use super::{globals, memory::tables};
+pub mod task;
+
+use super::{
+    gdt, globals,
+    memory::{paging, tables},
+};
 use crate::common::{
     memory::{allocator::physical_memory_allocator, stack::Stack},
-    process::Process,
+    process::{Process, ProcessControlBlock},
 };
 use alloc::boxed::Box;
 use x86_64::{
     structures::paging::{OffsetPageTable, PageTable},
-    VirtAddr,
+    PhysAddr, VirtAddr,
 };
 
 impl Process {
@@ -24,11 +29,26 @@ impl Process {
             let kernel_stack =
                 Stack::new_kernel_stack(globals::KERNEL_STACK_PER_PROCESS, &mut mapper, allocator);
             let mapper = Box::new(mapper);
-            Process {
+            let pcb = ProcessControlBlock {
                 mapper,
                 kernel_stack,
                 page_table: Box::from_raw(page_table),
-            }
+            };
+
+            Process::new_with_pcb(pcb)
         }
+    }
+
+    /// Activate this process as needed.
+    pub fn activate(&self) {
+        let pcb = &self.pcb.read();
+        let page_table = pcb.page_table.get_addr();
+        let phys = pcb
+            .mapper
+            .virt_to_phys(page_table as *const u8)
+            .expect("Cannot find Physical Address for page table to activate.");
+        paging::activate_page_table(PhysAddr::new(phys as u64));
+
+        gdt::setup_usermode();
     }
 }

@@ -5,11 +5,12 @@ impl Stack {
     /// WARN: DO NOT ACCESS LOCAL VARIABLES AFTER CALLING THIS.
     #[inline(always)]
     pub fn switch_to(&self) {
+        let ptrs = self.get_stack_pointers();
         unsafe {
             asm!("
                 mov rsp, {0}
-                mov rbp, {0}
-            ", in(reg) self.get_high_addr());
+                mov rbp, {1}
+            ", in(reg) ptrs.1, in(reg) ptrs.0);
         }
     }
 }

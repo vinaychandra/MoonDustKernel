@@ -10,7 +10,12 @@ BOOTTYPE	=	16
 # platform, options: x86_64
 PLATFORM	=	x86_64
 # the path to OVMF.fd (for testing with EFI)
-OVMF		=	./others/bootboot/OVMF-pure-efi-$(PLATFORM).fd
+ifneq ("$(wildcard /usr/share/qemu/OVMF.fd)","")
+    OVMF		=	/usr/share/qemu/OVMF.fd
+else
+	OVMF		=	./others/bootboot/OVMF-pure-efi-$(PLATFORM).fd
+endif
+
 # Choose font to link at core level (psf file in others/fonts)
 FONT		=	bootboot
 
@@ -47,8 +52,8 @@ target/$(PLATFORM)-moondust/debug/moondust-kernel: $(SOURCES)
 target/initrd.bin: target/$(PLATFORM)-moondust/debug/moondust-kernel userspace
 	@mkdir ./target/initrd ./target/initrd/sys 2>/dev/null | true
 	cp ./$< ./target/initrd/sys/core
-	@mkdir ./target/initrd ./target/initrd/modules 2>/dev/null | true
-	cp $(USERSPACE:./userspace/%=./target/$(PLATFORM)-moondust-user/debug/%) ./target/initrd/modules/
+	@mkdir ./target/initrd ./target/initrd/userspace 2>/dev/null | true
+	cp $(USERSPACE:./userspace/%=./target/$(PLATFORM)-moondust-user/debug/%) ./target/initrd/userspace/
 	@cd ./target/initrd && (find . | cpio -H ustar -o | gzip > ../initrd.bin) && cd ../..
 
 # Create the bootloader partition.

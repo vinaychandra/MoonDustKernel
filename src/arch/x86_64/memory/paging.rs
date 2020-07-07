@@ -4,6 +4,7 @@ use crate::common::memory::{
 };
 use core::alloc::Layout;
 use x86_64::{
+    registers::control::Cr3,
     structures::paging::{
         page::PageRange, FrameAllocator, Mapper, MapperAllSizes, OffsetPageTable, Page, PageTable,
         PageTableFlags, PhysFrame, Size4KiB,
@@ -85,7 +86,7 @@ impl<'a> IMemoryMapper for OffsetPageTable<'a> {
 
         let page_range: PageRange = {
             let start_page = Page::<Size4KiB>::from_start_address(VirtAddr::from_ptr(virt_addr))
-                .expect("start addr is no aligned");
+                .expect("start addr is not aligned");
             let end_page =
                 Page::<Size4KiB>::from_start_address(VirtAddr::new(virt_addr as u64 + size as u64))
                     .unwrap();
@@ -138,19 +139,57 @@ impl<'a> IMemoryMapper for OffsetPageTable<'a> {
 pub fn get_frame_allocator(
     allocator: &dyn IPhysicalMemoryAllocator,
 ) -> impl FrameAllocator<Size4KiB> + '_ {
-    PhysicalMemoryAllocatorWrapper { allocator }
+    PhysicalMemoryAllocatorWrapper {
+        allocator,
+        zeroed: false,
+        mem_map_offset: None,
+    }
+}
+
+pub fn get_frame_allocator_zeroed(
+    allocator: &dyn IPhysicalMemoryAllocator,
+    mem_map_offset: usize,
+) -> impl FrameAllocator<Size4KiB> + '_ {
+    PhysicalMemoryAllocatorWrapper {
+        allocator,
+        zeroed: true,
+        mem_map_offset: Some(mem_map_offset),
+    }
+}
+
+pub fn activate_page_table(phys_addr: PhysAddr) {
+    let frame =
+        PhysFrame::from_start_address(phys_addr).expect("Physical address is not frame aligned.");
+    let (_, flags) = Cr3::read();
+    unsafe {
+        Cr3::write(frame, flags);
+    }
 }
 
 struct PhysicalMemoryAllocatorWrapper<'a> {
     pub allocator: &'a dyn IPhysicalMemoryAllocator,
+    pub zeroed: bool,
+    pub mem_map_offset: Option<usize>,
 }
 
 unsafe impl<'a> FrameAllocator<Size4KiB> for PhysicalMemoryAllocatorWrapper<'a> {
     fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
         let layout = Layout::from_size_align(4096, 4096);
         let addr = self.allocator.allocate_physical_memory(layout.unwrap());
+
+        if self.zeroed {
+            // Clear the mem
+            for i in 0..4096 {
+                unsafe { *(addr.add(i).add(self.mem_map_offset.unwrap()) as *mut u8) = 0 };
+            }
+        }
+
         Some(PhysFrame::from_start_address(PhysAddr::new(addr as u64)).unwrap())
     }
 }
 
-impl IPageTable for PageTable {}
+impl IPageTable for PageTable {
+    fn get_addr(&self) -> *const dyn IPageTable {
+        self
+    }
+}

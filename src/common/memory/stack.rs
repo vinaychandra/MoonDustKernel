@@ -3,7 +3,10 @@ use super::{
     paging::{IMemoryMapper, MapperPermissions},
 };
 use crate::arch::globals;
-use core::alloc::{GlobalAlloc, Layout};
+use core::{
+    alloc::{GlobalAlloc, Layout},
+    sync::atomic::{AtomicPtr, Ordering},
+};
 use linked_list_allocator::LockedHeap;
 
 static STACK_ALLOCATOR: LockedHeap = LockedHeap::empty();
@@ -11,10 +14,13 @@ static STACK_ALLOCATOR: LockedHeap = LockedHeap::empty();
 pub struct Stack {
     high_addr: *mut u8,
     size: usize,
+
+    frame_pointer: AtomicPtr<u8>,
+    stack_pointer: AtomicPtr<u8>,
 }
 
 impl Stack {
-    /// Create a new stack with the give size.
+    /// Create a new stack with the given size.
     pub fn new_kernel_stack(
         size: usize,
         mapper: &mut dyn IMemoryMapper,
@@ -36,10 +42,44 @@ impl Stack {
             .unwrap();
 
         unsafe {
+            let high_addr = addr.offset((size + globals::PAGE_SIZE - 1) as isize);
+
             Stack {
-                high_addr: addr.offset((size + globals::PAGE_SIZE - 1) as isize),
+                high_addr: high_addr,
                 size: size + globals::PAGE_SIZE,
+                frame_pointer: AtomicPtr::new(high_addr),
+                stack_pointer: AtomicPtr::new(high_addr),
             }
+        }
+    }
+
+    /// Create a new user stack with the given size.
+    pub fn new_user_stack(
+        size: usize,
+        mapper: &mut dyn IMemoryMapper,
+        allocator: &dyn IPhysicalMemoryAllocator,
+    ) -> Stack {
+        debug_assert!(
+            size % globals::PAGE_SIZE == 0,
+            "Stack size should be aligned."
+        );
+
+        let addr = globals::USER_STACK_END - size + 1;
+        mapper
+            .map_with_alloc(
+                addr as *mut u8,
+                size,
+                MapperPermissions::READ | MapperPermissions::RING_3 | MapperPermissions::WRITE,
+                allocator,
+            )
+            .unwrap();
+
+        let high_addr = globals::USER_STACK_END as *mut u8;
+        Stack {
+            high_addr: high_addr,
+            size: size + globals::PAGE_SIZE,
+            frame_pointer: AtomicPtr::new(high_addr),
+            stack_pointer: AtomicPtr::new(high_addr),
         }
     }
 
@@ -60,14 +100,30 @@ impl Stack {
             frame_allocator,
         )?;
 
+        let high_addr = unsafe { high_addr.offset(-1) };
         Ok(Stack {
-            high_addr: unsafe { high_addr.offset(-1) },
+            high_addr: high_addr,
             size: globals::KERNEL_STACK_BSP_SIZE,
+            frame_pointer: AtomicPtr::new(high_addr),
+            stack_pointer: AtomicPtr::new(high_addr),
         })
     }
 
     pub fn get_high_addr(&self) -> *mut u8 {
         self.high_addr
+    }
+
+    // return framepointer, stack pointer.
+    pub fn get_stack_pointers(&self) -> (*mut u8, *mut u8) {
+        (
+            self.frame_pointer.load(Ordering::SeqCst),
+            self.stack_pointer.load(Ordering::SeqCst),
+        )
+    }
+
+    pub fn set_stack_pointers(&self, frame_pointer: *mut u8, stack_pointer: *mut u8) {
+        self.frame_pointer.store(frame_pointer, Ordering::SeqCst);
+        self.stack_pointer.store(stack_pointer, Ordering::SeqCst);
     }
 }
 

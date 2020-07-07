@@ -6,6 +6,7 @@ use x86_64::{
     },
     VirtAddr,
 };
+use crate::common::syscall;
 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 
@@ -94,6 +95,7 @@ pub fn setup_usermode() {
         )
         .unwrap();
     }
-    // let syscall_entry = super::process::syscall_entry as u64;
-    // x86_64::registers::model_specific::LStar::write(VirtAddr::new(syscall_entry));
+    
+    let syscall_entry = syscall::syscall_entry as u64;
+    x86_64::registers::model_specific::LStar::write(VirtAddr::new(syscall_entry));
 }

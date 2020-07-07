@@ -44,7 +44,7 @@ pub fn initialize_architecture_bsp() -> ! {
         UnsafeCell::new(BootFrameAllocator::new(entries))
     };
 
-    let mut mapper = memory::init_bsp();
+    let mut mapper = memory::init_bsp(&mut frame_allocator);
     let new_stack = Stack::bsp_kernel_stack(&mut mapper, &mut frame_allocator).unwrap();
     {
         let mut a = MEM.lock();
@@ -113,4 +113,16 @@ pub fn hlt_loop() -> ! {
     loop {
         x86_64::instructions::hlt();
     }
+}
+
+pub fn enable_interrupts_and_halt() {
+    x86_64::instructions::interrupts::enable_interrupts_and_hlt();
+}
+
+pub fn disable_interrupts() {
+    x86_64::instructions::interrupts::disable();
+}
+
+pub fn enable_interrupts() {
+    x86_64::instructions::interrupts::enable();
 }

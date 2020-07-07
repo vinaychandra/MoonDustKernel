@@ -8,9 +8,13 @@
 #![feature(naked_functions)]
 #![feature(new_uninit)]
 #![feature(thread_local)]
+#![feature(wake_trait)]
 
+use common::{process::Process, ramdisk};
 #[cfg(not(test))]
 use core::panic::PanicInfo;
+use elfloader::{ElfBinary, ElfLoader};
+use ramdisk::ustar::UStarArchive;
 
 #[allow(dead_code)]
 #[allow(non_snake_case)]
@@ -19,7 +23,6 @@ mod bootboot;
 
 pub mod arch;
 pub mod common;
-pub mod ramdisk;
 
 // Required for -Z build-std flag.
 extern crate rlibc;
@@ -55,7 +58,17 @@ pub fn main_bsp() -> ! {
 
         info!(target: "main", "initrd image is {}", ramdisk);
     }
+
     arch::hlt_loop();
+}
+
+fn load_sigma_space(ramdisk: UStarArchive) {
+    let file_name = "./userspace/sigma_space";
+    let file = ramdisk.lookup(file_name).expect("File not found");
+
+    let process = Process::new();
+    let binary = ElfBinary::new(file_name, file).expect("Bad ELF");
+    process.load_elf(0x0, binary).unwrap();
 }
 
 /// This function is called on panic.
