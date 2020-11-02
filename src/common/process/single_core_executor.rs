@@ -47,7 +47,7 @@ impl SimpleExecutor {
     }
 
     fn spawn_new_tasks(&mut self) {
-        while let Ok(task) = self.new_task_list.pop() {
+        while let Some(task) = self.new_task_list.pop() {
             self.spawn_internal(task)
         }
     }
@@ -70,7 +70,7 @@ impl SimpleExecutor {
             new_task_list,
         } = self;
 
-        while let Ok(task_id) = task_queue.pop() {
+        while let Some(task_id) = task_queue.pop() {
             let task = match tasks.get_mut(&task_id) {
                 Some(task) => task,
                 None => continue, // task no longer exists

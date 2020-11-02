@@ -49,12 +49,12 @@ impl IdGenerator {
     /// This returns `Some(value)` if an id is available.
     /// If the list is exhausted, `None` is returned.
     pub fn pop(&self) -> Option<u32> {
-        if let Ok(val) = self.unused_values.pop() {
+        if let Some(val) = self.unused_values.pop() {
             return Some(val);
         }
 
         let steps_done = self.steps_done.lock();
-        if let Ok(val) = self.unused_values.pop() {
+        if let Some(val) = self.unused_values.pop() {
             return Some(val);
         }
 

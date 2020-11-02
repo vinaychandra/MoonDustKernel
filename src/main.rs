@@ -9,6 +9,8 @@
 #![feature(new_uninit)]
 #![feature(thread_local)]
 #![feature(wake_trait)]
+#![feature(const_mut_refs)]
+#![feature(const_fn_fn_ptr_basics)]
 
 use common::{process::Process, ramdisk};
 #[cfg(not(test))]
@@ -34,6 +36,9 @@ extern crate log;
 extern crate bitflags;
 #[macro_use]
 extern crate alloc;
+
+extern crate rusttype;
+extern crate tui;
 
 #[thread_local]
 pub static mut TEST: u8 = 9;

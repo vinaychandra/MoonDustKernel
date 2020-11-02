@@ -37,7 +37,8 @@ src/bootboot.rs: others/bootboot/bootloader.h others/bootboot/bootboot.h
 	echo "pub mod custom_ctypes { pub type c_int = i64; pub type c_uchar = u64; }" >> $@
 
 userspace:
-	cargo xbuild --target ./triplets/$(PLATFORM)-moondust-user.json --workspace --exclude moondust-kernel
+# cargo xbuild --target ./triplets/$(PLATFORM)-moondust-user.json --workspace --exclude moondust-kernel
+	cargo build -Z build-std=core,alloc --target ./triplets/$(PLATFORM)-moondust-user.json --workspace --exclude moondust-kernel
 
 # Kernel build
 target/$(PLATFORM)-moondust/debug/moondust-kernel: $(SOURCES)
@@ -45,8 +46,8 @@ target/$(PLATFORM)-moondust/debug/moondust-kernel: $(SOURCES)
 	cp ./others/fonts/$(FONT).psf ./target/font.psf
 	cd ./target; objcopy -O elf64-x86-64 -B i386 -I binary font.psf font.o || true ; cd ..
 # https://github.com/rust-lang/wg-cargo-std-aware/issues/41
-# cargo build -Z build-std=core,alloc --target ./triplets/$(PLATFORM)-moondust.json
-	cargo xbuild --target ./triplets/$(PLATFORM)-moondust.json -p moondust-kernel
+	cargo build -Z build-std=core,alloc --target ./triplets/$(PLATFORM)-moondust.json -p moondust-kernel
+# cargo xbuild --target ./triplets/$(PLATFORM)-moondust.json -p moondust-kernel
 
 # create an initial ram disk image with the kernel inside
 target/initrd.bin: target/$(PLATFORM)-moondust/debug/moondust-kernel userspace
