@@ -8,7 +8,7 @@ use crate::{
         },
     },
 };
-use elfloader::{ElfLoader, LoadableHeaders, Rela, TypeRela64, VAddr, P64};
+use elfloader::{ElfLoader, Flags, LoadableHeaders, Rela, TypeRela64, VAddr, P64};
 
 /// ELF Loader into process.
 pub struct DefaultElfLoader<'a> {
@@ -81,7 +81,7 @@ impl<'a> ElfLoader for DefaultElfLoader<'a> {
     /// Copies `region` into memory starting at `base`.
     /// The caller makes sure that there was an `allocate` call previously
     /// to initialize the region.
-    fn load(&mut self, base: VAddr, region: &[u8]) -> Result<(), &'static str> {
+    fn load(&mut self, _flags: Flags, base: VAddr, region: &[u8]) -> Result<(), &'static str> {
         let start = self.vbase + base;
         let end = self.vbase + region.len() as u64;
         info!("load region into = {:#x} -- {:#x}", start, end);

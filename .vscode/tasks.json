@@ -23,26 +23,13 @@
       }
     },
     {
-      "label": "Launch QEMU (bios)",
-      "type": "shell",
-      "linux": {
-        "command": "tmux new-session -d -s osdev && tmux send-keys 'make bios-wait' C-m"
-      },
-      "osx": {
-        "command": "tmux new-session -d -s osdev && tmux send-keys 'make bios-wait' C-m"
-      },
-      "options": {
-        "cwd": "${workspaceFolder}/"
-      }
-    },
-    {
       "label": "Launch QEMU (efi)",
       "type": "shell",
       "linux": {
-        "command": "tmux new-session -d -s osdev && tmux send-keys 'make efi-wait' C-m"
+        "command": "(tmux kill-session -t osdev || $true) 2>  /dev/null && tmux new-session -d -s osdev && tmux send-keys 'make efi-wait' C-m"
       },
       "osx": {
-        "command": "tmux new-session -d -s osdev && tmux send-keys 'make efi-wait' C-m"
+        "command": "(tmux kill-session -t osdev || $true) 2>  /dev/null && tmux new-session -d -s osdev && tmux send-keys 'make efi-wait' C-m"
       },
       "options": {
         "cwd": "${workspaceFolder}/"

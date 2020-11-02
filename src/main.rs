@@ -15,19 +15,18 @@
 use common::{process::Process, ramdisk};
 #[cfg(not(test))]
 use core::panic::PanicInfo;
-use elfloader::{ElfBinary, ElfLoader};
+use elfloader::ElfBinary;
 use ramdisk::ustar::UStarArchive;
 
 #[allow(dead_code)]
 #[allow(non_snake_case)]
 #[allow(non_camel_case_types)]
 mod bootboot;
+mod bootboot2;
 
 pub mod arch;
 pub mod common;
 
-// Required for -Z build-std flag.
-extern crate rlibc;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -67,7 +66,7 @@ pub fn main_bsp() -> ! {
     arch::hlt_loop();
 }
 
-fn load_sigma_space(ramdisk: UStarArchive) {
+fn _load_sigma_space(ramdisk: UStarArchive) {
     let file_name = "./userspace/sigma_space";
     let file = ramdisk.lookup(file_name).expect("File not found");
 

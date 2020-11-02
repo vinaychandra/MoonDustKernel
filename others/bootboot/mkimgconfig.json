@@ -1,0 +1,25 @@
+{
+    "diskguid": "00000000-0000-0000-0000-000000000000",
+    "config": "./target/initrd/sys/config",
+    "initrd": {
+        "type": "tar",
+        "gzip": true,
+        "directory": "./target/initrd"
+    },
+    "partitions": [
+        {
+            "type": "fat32",
+            "size": 130
+        },
+        {
+            "type": "ext4",
+            "size": 128,
+            "name": "Linux Exchange"
+        },
+        {
+            "type": "ntfs",
+            "size": 128,
+            "name": "Windows Exchange"
+        }
+    ]
+}

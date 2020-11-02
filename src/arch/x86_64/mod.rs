@@ -22,11 +22,6 @@ use x86_64::{registers::control::EferFlags, structures::paging::OffsetPageTable,
 static LOGGER: SerialLogger = SerialLogger;
 
 pub fn initialize_architecture_bsp() -> ! {
-    // Initialize logging.
-    log::set_logger(&LOGGER)
-        .map(|()| log::set_max_level(LevelFilter::Info))
-        .expect("Setting logger failed");
-
     info!(target: "initialize_architecture", "Initializing x86_64 architecture.");
 
     {
@@ -41,29 +36,63 @@ pub fn initialize_architecture_bsp() -> ! {
     info!(target: "initialize_architecture", "Setting up memory.");
     let mut frame_allocator = {
         let entries = unsafe { bootboot::bootboot.get_mmap_entries() };
-        UnsafeCell::new(BootFrameAllocator::new(entries))
+        BootFrameAllocator::new(entries)
     };
 
-    let mut mapper = memory::init_bsp(&mut frame_allocator);
-    let new_stack = Stack::bsp_kernel_stack(&mut mapper, &mut frame_allocator).unwrap();
+    // 2 pages for initial bootstrapping.
+    let addr = frame_allocator
+        .alloc(8096, 4096)
+        .expect("Cannot allocate bootstrap stack")
+        + 8096
+        - globals::STACK_ALIGN;
+
+    let frame_allocator = UnsafeCell::new(frame_allocator);
+
     {
         let mut a = MEM.lock();
-        *a = Some((mapper, frame_allocator));
+        *a = Some((None, frame_allocator));
+    }
+
+    // Identity mapped data.
+    unsafe {
+        asm!("
+        mov rsp, {0}
+        mov rbp, {0}
+        jmp {1}
+        ", in(reg) addr, sym initialize_architecture_bsp2);
+    }
+
+    error!("Unexpected continuation of stack switching.");
+    loop {}
+}
+
+pub fn initialize_architecture_bsp2() {
+    let (_, mut frame_allocator) = MEM.lock().take().unwrap();
+    let mut mapper = memory::init_bsp(&mut frame_allocator);
+    let new_stack = Stack::bsp_kernel_stack(&mut mapper, &mut frame_allocator).unwrap();
+
+    {
+        let mut a = MEM.lock();
+        *a = Some((Some(mapper), frame_allocator));
     }
 
     // Switch to a new stack
     info!(target: "initialize_architecture", "Switching to bsp stack");
     new_stack.switch_to();
     unsafe { asm!("jmp {}", sym initialize_architecture_bsp_stack) };
-
-    error!("Unexpected continuation of stack switching.");
-    loop {}
 }
 
-static MEM: Mutex<Option<(OffsetPageTable, UnsafeCell<BootFrameAllocator>)>> = Mutex::new(None);
+static MEM: Mutex<Option<(Option<OffsetPageTable>, UnsafeCell<BootFrameAllocator>)>> =
+    Mutex::new(None);
 
 pub fn initialize_architecture_bsp_stack() -> ! {
-    let (mut mapper, mut frame_allocator) = MEM.lock().take().unwrap();
+    // Initialize logging.
+    log::set_logger(&LOGGER)
+        .map(|()| log::set_max_level(LevelFilter::Info))
+        .expect("Setting logger failed");
+
+    let (mapper, mut frame_allocator) = MEM.lock().take().unwrap();
+    let mut mapper = mapper.unwrap();
     {
         info!(target: "initialize_architecture_bsp", "Initializing heap");
         heap::initialize_heap(&mut mapper, &mut frame_allocator)

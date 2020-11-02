@@ -1,5 +1,7 @@
 {
   "editor.formatOnSave": true,
-  "editor.rulers": [100],
+  "editor.rulers": [
+    150
+  ],
   "debug.allowBreakpointsEverywhere": true
 }

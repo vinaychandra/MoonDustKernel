@@ -2,7 +2,7 @@
 //! pre-allocated frames.
 
 use super::physical_memory_allocator::IPhysicalMemoryAllocator;
-use crate::bootboot::{MMapEnt, MMapEntType};
+use crate::{bootboot::MMapEnt, bootboot2::MMapEntType};
 use core::cell::UnsafeCell;
 use linked_list_allocator::align_up;
 
@@ -38,7 +38,7 @@ impl BootFrameAllocator {
         let mut index = 0;
         loop {
             first_memory_region = memory_iter[index];
-            if first_memory_region.get_type() == MMapEntType::Free {
+            if first_memory_region.is_free() {
                 break;
             }
 
@@ -72,7 +72,7 @@ impl BootFrameAllocator {
             self.next_memory_region += 1;
         }
 
-        if to_return != None {
+        if let Some(_) = to_return {
             return to_return;
         }
 
@@ -128,7 +128,7 @@ impl BootFrameAllocator {
         loop {
             self.current_memory_region = self.next_memory_region;
             if self.current_memory_region >= self.memory_iter.len()
-                || self.memory_iter[self.current_memory_region].get_type() == MMapEntType::Free
+                || self.memory_iter[self.current_memory_region].is_free()
             {
                 break;
             } else {

@@ -2,7 +2,7 @@ use super::{
     allocator::physical_memory_allocator::IPhysicalMemoryAllocator,
     paging::{IMemoryMapper, MapperPermissions},
 };
-use crate::arch::globals;
+use crate::{arch::globals, common::align_down};
 use core::{
     alloc::{GlobalAlloc, Layout},
     sync::atomic::{AtomicPtr, Ordering},
@@ -20,6 +20,15 @@ pub struct Stack {
 }
 
 impl Stack {
+    pub const fn empty() -> Stack {
+        Stack {
+            high_addr: core::ptr::null_mut(),
+            size: 0,
+            frame_pointer: AtomicPtr::new(0 as *mut u8),
+            stack_pointer: AtomicPtr::new(0 as *mut u8),
+        }
+    }
+
     /// Create a new stack with the given size.
     pub fn new_kernel_stack(
         size: usize,
@@ -42,7 +51,8 @@ impl Stack {
             .unwrap();
 
         unsafe {
-            let high_addr = addr.offset((size + globals::PAGE_SIZE - 1) as isize);
+            let high_addr =
+                addr.offset((size + globals::PAGE_SIZE - globals::STACK_ALIGN) as isize);
 
             Stack {
                 high_addr: high_addr,
@@ -74,7 +84,8 @@ impl Stack {
             )
             .unwrap();
 
-        let high_addr = globals::USER_STACK_END as *mut u8;
+        let high_addr =
+            align_down(globals::USER_STACK_END as u64, globals::STACK_ALIGN as u64) as *mut u8;
         Stack {
             high_addr: high_addr,
             size: size + globals::PAGE_SIZE,
@@ -100,7 +111,7 @@ impl Stack {
             frame_allocator,
         )?;
 
-        let high_addr = unsafe { high_addr.offset(-1) };
+        let high_addr = unsafe { high_addr.offset(-1isize * (globals::STACK_ALIGN as isize)) };
         Ok(Stack {
             high_addr: high_addr,
             size: globals::KERNEL_STACK_BSP_SIZE,
@@ -113,7 +124,7 @@ impl Stack {
         self.high_addr
     }
 
-    // return framepointer, stack pointer.
+    /// return framepointer, stack pointer.
     pub fn get_stack_pointers(&self) -> (*mut u8, *mut u8) {
         (
             self.frame_pointer.load(Ordering::SeqCst),

@@ -37,6 +37,13 @@ extern "C" {
 
 #define BOOTBOOT_MAGIC "BOOT"
 
+/* default virtual addresses for level 0 and 1 static loaders */
+#define BOOTBOOT_MMIO   0xfffffffff8000000  /* memory mapped IO virtual address */
+#define BOOTBOOT_FB     0xfffffffffc000000  /* frame buffer virtual address */
+#define BOOTBOOT_INFO   0xffffffffffe00000  /* bootboot struct virtual address */
+#define BOOTBOOT_ENV    0xffffffffffe01000  /* environment string virtual address */
+#define BOOTBOOT_CORE   0xffffffffffe02000  /* core loadable segment start */
+
 /* minimum protocol level:
  *  hardcoded kernel name, static kernel memory addresses */
 #define PROTOCOL_MINIMAL 0
@@ -50,9 +57,10 @@ extern "C" {
 #define PROTOCOL_BIGENDIAN 0x80
 
 /* loader types, just informational */
-#define LOADER_BIOS (0<<2)
-#define LOADER_UEFI (1<<2)
-#define LOADER_RPI  (2<<2)
+#define LOADER_BIOS     (0<<2)
+#define LOADER_UEFI     (1<<2)
+#define LOADER_RPI      (2<<2)
+#define LOADER_COREBOOT (3<<2)
 
 /* framebuffer pixel format, only 32 bits supported */
 #define FB_ARGB   0
@@ -91,7 +99,7 @@ typedef struct {
   uint8_t    datetime[8]; /* in BCD yyyymmddhhiiss UTC (independent to timezone) */
   uint64_t   initrd_ptr;  /* ramdisk image position and size */
   uint64_t   initrd_size;
-  uint8_t    *fb_ptr;     /* framebuffer pointer and dimensions */
+  uint64_t   fb_ptr;      /* framebuffer pointer and dimensions */
   uint32_t   fb_size;
   uint32_t   fb_width;
   uint32_t   fb_height;
