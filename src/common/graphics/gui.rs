@@ -19,8 +19,8 @@ impl App {
     fn new() -> App {
         App {
             progress1: 0,
-            progress2: 0,
-            progress3: 0.0,
+            progress2: 20,
+            progress3: 0.33,
             progress4: 0,
         }
     }
@@ -69,7 +69,7 @@ pub fn run<'a>(mut terminal: Terminal<FrameBrufferDisplay<'a>>) -> Result<(), St
 
                 let gauge = Gauge::default()
                     .block(Block::default().title("Gauge1").borders(Borders::ALL))
-                    .gauge_style(Style::default().fg(Color::Yellow))
+                    .gauge_style(Style::default().fg(Color::Yellow).bg(Color::Blue))
                     .percent(app.progress1);
                 f.render_widget(gauge, chunks[0]);
 

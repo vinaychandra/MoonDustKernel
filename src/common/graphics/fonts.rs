@@ -21,7 +21,7 @@ impl<'a> FontCache<'a> {
 
         // 2x scale in x direction to counter the aspect ratio of monospace characters.
         let scale = Scale {
-            x: height * 1.4,
+            x: height * 2.0,
             y: height,
         };
 
@@ -37,8 +37,8 @@ impl<'a> FontCache<'a> {
             regular_font,
             regular_offset,
             scale,
-            cell_height: 10,
-            cell_width: 8,
+            cell_height: 12,
+            cell_width: 12,
         }
     }
 }

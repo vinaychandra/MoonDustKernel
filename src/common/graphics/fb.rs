@@ -1,7 +1,8 @@
 //! Framebuffer for the OS.
 use alloc::vec::Vec;
+use num_traits::float::Float;
 use rusttype::{point, Point};
-use tui::{backend::Backend, buffer::Cell, layout::Rect};
+use tui::{backend::Backend, layout::Rect, style::Color};
 
 use super::fonts::FontCache;
 
@@ -27,11 +28,12 @@ impl<'a> FrameBrufferDisplay<'a> {
         }
     }
 
-    pub fn put_raw_pixel(&mut self, point: Point<i32>, value: u32) {
+    pub fn put_raw_pixel(&mut self, point: Point<i32>, c: (u8, u8, u8)) {
         let index: u32 = (point.x + (point.y * self.scanline as i32)) as u32;
+        let val: u32 = (c.0 as u32) << 16 as u32 | (c.1 as u32) << 8 as u32 | (c.2 as u32) as u32;
 
         if index < self.double_buffer.len() as u32 {
-            self.double_buffer[index as usize] = value;
+            self.double_buffer[index as usize] = val;
         } else {
             warn!(
                 "Pixel failed.. {:?} {:?} {:?}",
@@ -41,40 +43,6 @@ impl<'a> FrameBrufferDisplay<'a> {
             );
         }
     }
-
-    fn do_draw(&mut self, cx: u16, cy: u16, cell: &Cell) {
-        let positioned = {
-            let glyph = self.font_cache.regular_font.glyph(
-                cell.symbol
-                    .chars()
-                    .into_iter()
-                    .next()
-                    .expect("Expected atleast one char"),
-            );
-            let scaled = glyph.scaled(self.font_cache.scale);
-            scaled.positioned(self.font_cache.regular_offset)
-        };
-
-        let mapping_scale = 255 as f32; // 8 bit color
-        if let Some(bb) = positioned.pixel_bounding_box() {
-            positioned.draw(|x, y, v| {
-                // v should be in the range 0.0 to 1.0
-                let i = (v * mapping_scale + 0.5) as u8 as u32;
-                let gray = i | i << 8 | i << 16;
-
-                let x = x as i32 + bb.min.x;
-                let y = y as i32 + bb.min.y;
-
-                let x = (self.font_cache.cell_width * cx) as i32 + x;
-                let y = (self.font_cache.cell_height * cy) as i32 + y;
-
-                self.put_raw_pixel(point(x, y), gray);
-            });
-        } else {
-            // warn!("No pixel bounding box for this {:?}", cell);
-            let _ = 1;
-        }
-    }
 }
 
 impl<'a> Backend for FrameBrufferDisplay<'a> {
@@ -82,8 +50,51 @@ impl<'a> Backend for FrameBrufferDisplay<'a> {
     where
         I: Iterator<Item = (u16, u16, &'b tui::buffer::Cell)>,
     {
-        for (x, y, c) in content {
-            self.do_draw(x, y, c);
+        let default_fg = convert_color(Color::White).unwrap();
+        let default_bg = convert_color(Color::Black).unwrap();
+
+        for (cx, cy, cell) in content {
+            let positioned = {
+                let glyph = self.font_cache.regular_font.glyph(
+                    cell.symbol
+                        .chars()
+                        .into_iter()
+                        .next()
+                        .expect("Expected atleast one char"),
+                );
+                let scaled = glyph.scaled(self.font_cache.scale);
+                scaled.positioned(self.font_cache.regular_offset)
+            };
+
+            let fg = convert_color(cell.fg).unwrap_or(default_fg);
+            let bg = convert_color(cell.bg).unwrap_or(default_bg);
+
+            if let Some(bb) = positioned.pixel_bounding_box() {
+                positioned.draw(|x, y, v| {
+                    // v should be in the range 0.0 to 1.0
+                    let r = (v * fg.0 as f32) + (1.0 - v) * (bg.0 as f32);
+                    let g = (v * fg.1 as f32) + (1.0 - v) * (bg.1 as f32);
+                    let b = (v * fg.2 as f32) + (1.0 - v) * (bg.2 as f32);
+                    let color = (r.ceil() as u8, g.ceil() as u8, b.ceil() as u8);
+
+                    let x = x as i32 + bb.min.x;
+                    let y = y as i32 + bb.min.y;
+
+                    let x = (self.font_cache.cell_width * cx) as i32 + x;
+                    let y = (self.font_cache.cell_height * cy) as i32 + y;
+
+                    self.put_raw_pixel(point(x, y), color);
+                });
+            } else {
+                for x in 0..self.font_cache.cell_width {
+                    for y in 0..self.font_cache.cell_height {
+                        let x: i32 = (self.font_cache.cell_width * cx) as i32 + x as i32;
+                        let y: i32 = (self.font_cache.cell_height * cy) as i32 + y as i32;
+
+                        self.put_raw_pixel(point(x, y), bg);
+                    }
+                }
+            }
         }
 
         Ok(())
@@ -122,5 +133,29 @@ impl<'a> Backend for FrameBrufferDisplay<'a> {
         info!("Flushing to screen");
         self.fb[..].copy_from_slice(&self.double_buffer);
         Ok(())
+    }
+}
+
+fn convert_color(color: Color) -> Option<(u8, u8, u8)> {
+    match color {
+        Color::Reset => None,
+        Color::Black => Some((0x00, 0x00, 0x00)),
+        Color::Red => Some((0xFF, 0x00, 0x00)),
+        Color::Green => Some((0x00, 0xFF, 0x00)),
+        Color::Yellow => Some((0xFF, 0xFF, 0x00)),
+        Color::Blue => Some((0x00, 0x00, 0xFF)),
+        Color::Magenta => Some((0xFF, 0x00, 0xFF)),
+        Color::Cyan => Some((0x00, 0xFF, 0xFF)),
+        Color::Gray => Some((0x80, 0x80, 0x80)),
+        Color::DarkGray => Some((0xA9, 0xA9, 0xA9)),
+        Color::LightRed => Some((0xFF, 0xCC, 0xCB)),
+        Color::LightGreen => Some((0x90, 0xEE, 0x90)),
+        Color::LightYellow => Some((0xFF, 0xFF, 0xE0)),
+        Color::LightBlue => Some((0xAD, 0xD8, 0xE6)),
+        Color::LightMagenta => Some((0xFF, 0x80, 0xFF)),
+        Color::LightCyan => Some((0xE0, 0xFF, 0xFF)),
+        Color::White => Some((0xFF, 0xFF, 0xFF)),
+        Color::Rgb(r, g, b) => Some((r, g, b)),
+        Color::Indexed(_) => None,
     }
 }

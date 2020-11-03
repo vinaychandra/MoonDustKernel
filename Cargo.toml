@@ -16,6 +16,7 @@ bitflags = "1.2"
 elfloader = "0.11"
 xmas-elf = "0.7"
 
+
 # Text UI 
 tui = { git = "https://github.com/vinaychandra/tui-rs", branch = "no_std" }
 
@@ -30,3 +31,8 @@ x86_64 = "0.12.2"
 [workspace]
 members = [ "userspace/sigma_space" ]
 default-members = [ ]
+
+[dependencies.num-traits]
+version = "0.2"
+default-features = false
+features = ["libm"]    # <--- Uncomment if you wish to use `Float` and `Real` without `std`
