@@ -67,6 +67,11 @@ pub fn initialize_architecture_bsp() -> ! {
 }
 
 pub fn initialize_architecture_bsp2() {
+    // Initialize logging.
+    log::set_logger(&LOGGER)
+        .map(|()| log::set_max_level(LevelFilter::Info))
+        .expect("Setting logger failed");
+
     let (_, mut frame_allocator) = MEM.lock().take().unwrap();
     let mut mapper = memory::init_bsp(&mut frame_allocator);
     let new_stack = Stack::bsp_kernel_stack(&mut mapper, &mut frame_allocator).unwrap();
@@ -86,11 +91,6 @@ static MEM: Mutex<Option<(Option<OffsetPageTable>, UnsafeCell<BootFrameAllocator
     Mutex::new(None);
 
 pub fn initialize_architecture_bsp_stack() -> ! {
-    // Initialize logging.
-    log::set_logger(&LOGGER)
-        .map(|()| log::set_max_level(LevelFilter::Info))
-        .expect("Setting logger failed");
-
     let (mapper, mut frame_allocator) = MEM.lock().take().unwrap();
     let mut mapper = mapper.unwrap();
     {

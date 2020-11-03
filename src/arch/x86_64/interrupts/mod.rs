@@ -1,6 +1,6 @@
 use super::gdt;
 use x86_64::{
-    structures::idt::{InterruptDescriptorTable, InterruptStackFrame},
+    structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode},
     VirtAddr,
 };
 
@@ -43,6 +43,7 @@ pub fn initialize(_phys_mem_offset: VirtAddr) {
         IDT.double_fault
             .set_handler_fn(double_fault_handler)
             .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
+        IDT.page_fault.set_handler_fn(page_fault_handler);
         IDT.load();
     }
 }
@@ -75,6 +76,21 @@ extern "x86-interrupt" fn double_fault_handler(
         "EXCEPTION: DOUBLE FAULT\n{:#?}\nError Code: {}",
         stack_frame,
         error_code
+    );
+    crate::arch::hlt_loop()
+}
+
+extern "x86-interrupt" fn page_fault_handler(
+    stack_frame: &mut InterruptStackFrame,
+    error_code: PageFaultErrorCode,
+) {
+    use x86_64::registers::control::Cr2;
+    error!(
+        target: "PageFaultHandler",
+        "EXCEPTION: PAGE FAULT\n{:#?}\nError Code: {:?}\nAccessed Address: {:?}",
+        stack_frame,
+        error_code,
+        Cr2::read()
     );
     crate::arch::hlt_loop()
 }

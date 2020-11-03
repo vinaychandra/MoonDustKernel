@@ -53,11 +53,11 @@ pub fn init_bsp(allocator: &mut dyn IPhysicalMemoryAllocator) -> OffsetPageTable
 
 /// Initialize CPU local store for kernel.
 pub fn initialize_tls() {
+    let total_size;
     let tls_ptr = unsafe {
         let tdata_size =
             &__tdata_end as *const usize as usize - &__tdata_start as *const usize as usize;
-        let total_size =
-            &__tbss_end as *const usize as usize - &__tdata_start as *const usize as usize;
+        total_size = &__tbss_end as *const usize as usize - &__tdata_start as *const usize as usize;
         memory::cpu_local::load_tls_data(
             &__tdata_start as *const usize as *const u8,
             tdata_size,
@@ -74,7 +74,7 @@ pub fn initialize_tls() {
     unsafe {
         *fs_ptr = fs_ptr as u64;
     }
-    info!(target: "initialize_tls", "TLS Pointer is set to {:x?}", fs_ptr);
+    info!(target: "initialize_tls", "TLS Pointer is set to {:x?}. Size is {:?} bytes", fs_ptr, total_size);
 }
 
 extern "C" {

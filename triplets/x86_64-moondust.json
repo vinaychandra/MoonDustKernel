@@ -23,6 +23,8 @@
   "position-independent-executables": false,
   "has-elf-tls": true,
   "pre-link-args": {
-    "ld.lld": ["--script=./triplets/moondust_x86_64.ld", "./target/font.o"]
+    "ld.lld": [
+      "--script=./triplets/moondust_x86_64.ld"
+    ]
   }
 }

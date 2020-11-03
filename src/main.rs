@@ -12,11 +12,13 @@
 #![feature(const_mut_refs)]
 #![feature(const_fn_fn_ptr_basics)]
 
+use alloc::string::String;
 use common::{process::Process, ramdisk};
 #[cfg(not(test))]
 use core::panic::PanicInfo;
 use elfloader::ElfBinary;
 use ramdisk::ustar::UStarArchive;
+use tui::layout::Rect;
 
 #[allow(dead_code)]
 #[allow(non_snake_case)]
@@ -45,14 +47,14 @@ pub static mut TEST: u8 = 9;
 /// Entry point for the Operating System.
 #[no_mangle] // don't mangle the name of this function
 fn _start() -> ! {
-    puts("MootDust Kernel: Pre-Init...");
+    info!("MootDust Kernel: Pre-Init...");
     arch::initialize_architecture_bsp();
 }
 
 /// Main Function on bootstrap processor.
 /// This function should not return.
 pub fn main_bsp() -> ! {
-    puts("MoonDust Kernel: Main function");
+    info!("MoonDust Kernel: Main function");
 
     unsafe {
         let ramdisk = ramdisk::ustar::UStarArchive::new(
@@ -63,6 +65,7 @@ pub fn main_bsp() -> ! {
         info!(target: "main", "initrd image is {}", ramdisk);
     }
 
+    load_graphics().unwrap();
     arch::hlt_loop();
 }
 
@@ -75,12 +78,38 @@ fn _load_sigma_space(ramdisk: UStarArchive) {
     process.load_elf(0x0, binary).unwrap();
 }
 
+fn load_graphics() -> Result<(), String> {
+    let display;
+    let size;
+    unsafe {
+        let fb_raw = &bootboot::fb as *const u8 as *mut u32;
+        let b = bootboot::bootboot;
+        assert!(
+            b.fb_scanline == b.fb_width * 4,
+            "Scanline must be the same size as width * 4. Not implemented the non equal scenario."
+        );
+        let fb = core::slice::from_raw_parts_mut(
+            fb_raw,
+            (bootboot::bootboot.fb_height * bootboot::bootboot.fb_width) as usize,
+        );
+        size = Rect::new(0, 0, 30, 30);
+        display = common::graphics::fb::FrameBrufferDisplay::new(fb, size, b.fb_width);
+    }
+
+    info!("Initializing the UI");
+    let terminal = tui::Terminal::new(display).unwrap();
+    info!("Terminal created");
+    crate::common::graphics::gui::run(terminal)?;
+    info!("Run completed");
+    Ok(())
+}
+
 /// This function is called on panic.
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     error!("Panic: {}", info);
-    puts("====== KERNEL_PANIC ======");
+    info!("====== KERNEL_PANIC ======");
     loop {}
 }
 
@@ -90,43 +119,24 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     panic!("allocation error: {:?}", layout)
 }
 
-fn puts(string: &'static str) {
-    use bootboot::*;
-    unsafe {
-        let font: *mut bootboot::psf2_t = &_binary_font_psf_start as *const u64 as *mut psf2_t;
-        let (mut kx, mut line, mut mask, mut offs): (u32, u64, u64, u32);
-        kx = 0;
-        let bpl = ((*font).width + 7) / 8;
+// TODO: Missing fminf in compiler-builtins for soft-float
+// BODY: See https://github.com/rust-lang/rust/issues/62729.
+// BODY:
+// BODY: As a workaround, we include the functions in libuser for now.
+/// Workaround rust-lang/rust#62729
+#[no_mangle]
+#[doc(hidden)]
+pub unsafe extern "C" fn fminf(x: f32, y: f32) -> f32 {
+    libm::fminf(x, y)
+}
 
-        for s in string.bytes() {
-            let glyph_a: *mut u8 = (font as u64 + (*font).headersize as u64) as *mut u8;
-            let mut glyph: *mut u8 = glyph_a.offset(
-                (if s > 0 && (s as u32) < (*font).numglyph {
-                    s as u32
-                } else {
-                    0
-                } * ((*font).bytesperglyph)) as isize,
-            );
-            offs = kx * ((*font).width + 1) * 4;
-            for _y in 0..(*font).height {
-                line = offs as u64;
-                mask = 1 << ((*font).width - 1);
-                for _x in 0..(*font).width {
-                    let target_location = (&bootboot::fb as *const u8 as u64 + line) as *mut u32;
-                    let mut target_value: u32 = 0;
-                    if (*glyph as u64) & (mask) > 0 {
-                        target_value = 0xFFFFFF;
-                    }
-                    *target_location = target_value;
-                    mask >>= 1;
-                    line += 4;
-                }
-                let target_location = (&bootboot::fb as *const u8 as u64 + line) as *mut u32;
-                *target_location = 0;
-                glyph = glyph.offset(bpl as isize);
-                offs += bootboot.fb_scanline;
-            }
-            kx += 1;
-        }
-    }
+// TODO: Missing fmaxf in compiler-builtins for soft-float
+// BODY: See https://github.com/rust-lang/rust/issues/62729.
+// BODY:
+// BODY: As a workaround, we include the functions in libuser for now.
+/// Workaround rust-lang/rust#62729
+#[no_mangle]
+#[doc(hidden)]
+pub unsafe extern "C" fn fmaxf(x: f32, y: f32) -> f32 {
+    libm::fmaxf(x, y)
 }

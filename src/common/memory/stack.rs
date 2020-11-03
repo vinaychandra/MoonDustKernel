@@ -11,6 +11,7 @@ use linked_list_allocator::LockedHeap;
 
 static STACK_ALLOCATOR: LockedHeap = LockedHeap::empty();
 
+#[derive(Debug)]
 pub struct Stack {
     high_addr: *mut u8,
     size: usize,
@@ -112,12 +113,14 @@ impl Stack {
         )?;
 
         let high_addr = unsafe { high_addr.offset(-1isize * (globals::STACK_ALIGN as isize)) };
-        Ok(Stack {
+        let result = Ok(Stack {
             high_addr: high_addr,
             size: globals::KERNEL_STACK_BSP_SIZE,
             frame_pointer: AtomicPtr::new(high_addr),
             stack_pointer: AtomicPtr::new(high_addr),
-        })
+        });
+        info!(target: "new_kernel_stack", "Kernel BSP Stack: {:?}", result);
+        result
     }
 
     pub fn get_high_addr(&self) -> *mut u8 {

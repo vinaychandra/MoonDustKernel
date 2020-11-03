@@ -21,7 +21,7 @@ tui = { git = "https://github.com/vinaychandra/tui-rs", branch = "no_std" }
 
 # RustType font support
 rusttype = { version = "0.9", default-features = false, features = ["libm-math"] }
-
+libm = { version = "0.2.1", default-features = false }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 uart_16550 = "0.2.10"
