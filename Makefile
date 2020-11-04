@@ -34,7 +34,7 @@ target/$(PLATFORM)-moondust/debug/moondust-kernel: $(KERNEL_SOURCES)
 target/disk-$(PLATFORM).img: target/$(PLATFORM)-moondust/debug/moondust-kernel
 	@mkdir ./target/initrd ./target/initrd/sys ./target/initrd/sys 2>/dev/null | true
 	cp ./$< ./target/initrd/sys/core
-	cd ./target/initrd/sys; echo -e "screen=800x600\nkernel=sys/core\n" >config || true;
+	cd ./target/initrd/sys; echo -e "screen=1280x768\nkernel=sys/core\n" >config || true;
 	./others/bootboot/mkbootimg-$(HOST) ./others/bootboot/mkimgconfig.json $@
 
 check-image: target/$(PLATFORM)-moondust/debug/moondust-kernel

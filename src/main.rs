@@ -13,7 +13,7 @@
 #![feature(const_fn_fn_ptr_basics)]
 
 use alloc::string::String;
-use common::{process::Process, ramdisk};
+use common::{graphics::gui::GuiState, process::Process, ramdisk};
 #[cfg(not(test))]
 use core::panic::PanicInfo;
 use elfloader::ElfBinary;
@@ -92,14 +92,26 @@ fn load_graphics() -> Result<(), String> {
             fb_raw,
             (bootboot::bootboot.fb_height * bootboot::bootboot.fb_width) as usize,
         );
-        size = Rect::new(0, 0, 30, 30);
+        size = Rect::new(0, 0, 80, 50);
         display = common::graphics::fb::FrameBrufferDisplay::new(fb, size, b.fb_width);
     }
 
     info!("Initializing the UI");
     let terminal = tui::Terminal::new(display).unwrap();
     info!("Terminal created");
-    crate::common::graphics::gui::run(terminal)?;
+    let mut state = GuiState::new();
+
+    for _ in 0..30 {
+        let mut b = log::RecordBuilder::new();
+        let test = b
+            .level(log::Level::Info)
+            .line(Some(5))
+            .args(format_args!("Some val"));
+        let val = test.build();
+        state.add_log(val);
+    }
+
+    crate::common::graphics::gui::draw(&state, terminal)?;
     info!("Run completed");
     Ok(())
 }

@@ -1,107 +1,84 @@
-use alloc::string::String;
+use alloc::{collections::VecDeque, string::String, vec::Vec};
+use log::Record;
 use tui::{
     layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Gauge},
+    style::{Color, Style},
+    widgets::List,
+    widgets::ListItem,
+    widgets::{Block, Borders, ListState},
     Terminal,
 };
 
 use super::fb::FrameBrufferDisplay;
 
-struct App {
-    progress1: u16,
-    progress2: u16,
-    progress3: f64,
-    progress4: u16,
+pub struct GuiState<'a> {
+    logs: VecDeque<Record<'a>>,
+    logs_count: usize,
 }
 
-impl App {
-    fn new() -> App {
-        App {
-            progress1: 0,
-            progress2: 20,
-            progress3: 0.33,
-            progress4: 0,
+impl<'a> GuiState<'a> {
+    pub fn new() -> GuiState<'a> {
+        GuiState {
+            logs: VecDeque::with_capacity(20),
+            logs_count: 26,
         }
     }
 
-    fn _update(&mut self) {
-        self.progress1 += 5;
-        if self.progress1 > 100 {
-            self.progress1 = 0;
+    pub fn add_log(&mut self, record: Record<'a>) {
+        if self.logs.len() >= self.logs_count {
+            self.logs.pop_front();
         }
-        self.progress2 += 10;
-        if self.progress2 > 100 {
-            self.progress2 = 0;
-        }
-        self.progress3 += 0.001;
-        if self.progress3 > 1.0 {
-            self.progress3 = 0.0;
-        }
-        self.progress4 += 3;
-        if self.progress4 > 100 {
-            self.progress4 = 0;
-        }
+
+        self.logs.push_back(record);
     }
 }
 
-pub fn run<'a>(mut terminal: Terminal<FrameBrufferDisplay<'a>>) -> Result<(), String> {
-    // Terminal initialization
+pub fn draw<'a>(
+    state: &GuiState,
+    mut terminal: Terminal<FrameBrufferDisplay<'a>>,
+) -> Result<(), String> {
+    terminal
+        .draw(|f| {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(2)
+                .constraints(
+                    [
+                        Constraint::Percentage(80),
+                        Constraint::Percentage(10),
+                        Constraint::Percentage(10),
+                    ]
+                    .as_ref(),
+                )
+                .split(f.size());
 
-    let app = App::new();
-
-    loop {
-        terminal
-            .draw(|f| {
-                let chunks = Layout::default()
-                    .direction(Direction::Vertical)
-                    .margin(2)
-                    .constraints(
-                        [
-                            Constraint::Percentage(25),
-                            Constraint::Percentage(25),
-                            Constraint::Percentage(25),
-                            Constraint::Percentage(25),
-                        ]
-                        .as_ref(),
-                    )
-                    .split(f.size());
-
-                let gauge = Gauge::default()
-                    .block(Block::default().title("Gauge1").borders(Borders::ALL))
-                    .gauge_style(Style::default().fg(Color::Yellow).bg(Color::Blue))
-                    .percent(app.progress1);
-                f.render_widget(gauge, chunks[0]);
-
-                let label = format!("{}/100", app.progress2);
-                let gauge = Gauge::default()
-                    .block(Block::default().title("Gauge2").borders(Borders::ALL))
-                    .gauge_style(Style::default().fg(Color::Magenta).bg(Color::Green))
-                    .percent(app.progress2)
-                    .label(label);
-                f.render_widget(gauge, chunks[1]);
-
-                let gauge = Gauge::default()
-                    .block(Block::default().title("Gauge3").borders(Borders::ALL))
-                    .gauge_style(Style::default().fg(Color::Yellow))
-                    .ratio(app.progress3);
-                f.render_widget(gauge, chunks[2]);
-
-                let label = format!("{}/100", app.progress2);
-                let gauge = Gauge::default()
-                    .block(Block::default().title("Gauge4"))
-                    .gauge_style(
-                        Style::default()
-                            .fg(Color::Cyan)
-                            .add_modifier(Modifier::ITALIC),
-                    )
-                    .percent(app.progress4)
-                    .label(label);
-                f.render_widget(gauge, chunks[3]);
-            })
-            .unwrap();
-        break;
-    }
+            let log_items: Vec<ListItem> = state
+                .logs
+                .iter()
+                .map(|record| {
+                    let val = format!(
+                        "{} [{}] -- {}",
+                        record.level(),
+                        record.target(),
+                        record.args()
+                    );
+                    let item = ListItem::new(val);
+                    let item = match record.level() {
+                        log::Level::Error => item.style(Style::default().fg(Color::Red)),
+                        log::Level::Warn => item.style(Style::default().fg(Color::Yellow)),
+                        log::Level::Info => item.style(Style::default().fg(Color::White)),
+                        log::Level::Debug => item.style(Style::default().fg(Color::Gray)),
+                        log::Level::Trace => item.style(Style::default().fg(Color::Gray)),
+                    };
+                    item
+                })
+                .collect();
+            let log_list =
+                List::new(log_items).block(Block::default().title("Logs").borders(Borders::ALL));
+            let mut state = ListState::default();
+            f.render_stateful_widget(log_list, chunks[0], &mut state);
+        })
+        .unwrap();
 
     Ok(())
 }

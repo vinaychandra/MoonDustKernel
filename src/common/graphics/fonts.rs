@@ -16,12 +16,12 @@ impl<'a> FontCache<'a> {
             .expect("Error constructing font from bytes");
 
         // Desired font pixel height
-        let height: f32 = 12.4; // to get 80 chars across (fits most terminals); adjust as desired
+        let height: f32 = 10.0; // to get 80 chars across (fits most terminals); adjust as desired
                                 // let pixel_height = height.ceil() as usize;
 
         // 2x scale in x direction to counter the aspect ratio of monospace characters.
         let scale = Scale {
-            x: height * 2.0,
+            x: height * 1.9,
             y: height,
         };
 
@@ -37,8 +37,8 @@ impl<'a> FontCache<'a> {
             regular_font,
             regular_offset,
             scale,
-            cell_height: 12,
-            cell_width: 12,
+            cell_height: 10,
+            cell_width: 10,
         }
     }
 }
