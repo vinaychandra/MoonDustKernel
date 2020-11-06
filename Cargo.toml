@@ -16,12 +16,11 @@ bitflags = "1.2"
 elfloader = "0.11"
 xmas-elf = "0.7"
 
-
 # Text UI 
 tui = { git = "https://github.com/vinaychandra/tui-rs", branch = "no_std" }
 
 # RustType font support
-rusttype = { version = "0.9", default-features = false, features = ["libm-math"] }
+rusttype = { version = "0.9", default-features = false, features = ["libm-math", "has-atomics"] }
 libm = { version = "0.2.1", default-features = false }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]

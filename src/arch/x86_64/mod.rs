@@ -19,7 +19,7 @@ use serial::SerialLogger;
 use spin::Mutex;
 use x86_64::{registers::control::EferFlags, structures::paging::OffsetPageTable, VirtAddr};
 
-static LOGGER: SerialLogger = SerialLogger;
+pub static LOGGER: SerialLogger = SerialLogger;
 
 pub fn initialize_architecture_bsp() -> ! {
     info!(target: "initialize_architecture", "Initializing x86_64 architecture.");
@@ -68,7 +68,7 @@ pub fn initialize_architecture_bsp() -> ! {
 
 pub fn initialize_architecture_bsp2() {
     // Initialize logging.
-    log::set_logger(&LOGGER)
+    log::set_logger(&crate::KERNEL_LOGGER)
         .map(|()| log::set_max_level(LevelFilter::Info))
         .expect("Setting logger failed");
 

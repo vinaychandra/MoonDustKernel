@@ -1,5 +1,6 @@
 use alloc::{collections::VecDeque, string::String, vec::Vec};
-use log::Record;
+use log::{Level, Record};
+use spin::{Mutex, Once};
 use tui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Style},
@@ -11,31 +12,38 @@ use tui::{
 
 use super::fb::FrameBrufferDisplay;
 
-pub struct GuiState<'a> {
-    logs: VecDeque<Record<'a>>,
+pub struct GuiState {
+    logs: VecDeque<(Level, String)>,
     logs_count: usize,
 }
 
-impl<'a> GuiState<'a> {
-    pub fn new() -> GuiState<'a> {
+impl GuiState {
+    pub fn new() -> GuiState {
         GuiState {
-            logs: VecDeque::with_capacity(20),
+            logs: VecDeque::new(),
             logs_count: 26,
         }
     }
 
-    pub fn add_log(&mut self, record: Record<'a>) {
+    pub fn add_log<'a>(&mut self, record: &Record<'a>) {
         if self.logs.len() >= self.logs_count {
             self.logs.pop_front();
         }
 
-        self.logs.push_back(record);
+        let val = format!(
+            "{} [{}] -- {}",
+            record.level(),
+            record.target(),
+            record.args()
+        );
+
+        self.logs.push_back((record.level(), val));
     }
 }
 
-pub fn draw<'a>(
+fn draw<'a>(
     state: &GuiState,
-    mut terminal: Terminal<FrameBrufferDisplay<'a>>,
+    terminal: &mut Terminal<FrameBrufferDisplay<'a>>,
 ) -> Result<(), String> {
     terminal
         .draw(|f| {
@@ -56,14 +64,8 @@ pub fn draw<'a>(
                 .logs
                 .iter()
                 .map(|record| {
-                    let val = format!(
-                        "{} [{}] -- {}",
-                        record.level(),
-                        record.target(),
-                        record.args()
-                    );
-                    let item = ListItem::new(val);
-                    let item = match record.level() {
+                    let item = ListItem::new(record.1.clone());
+                    let item = match record.0 {
                         log::Level::Error => item.style(Style::default().fg(Color::Red)),
                         log::Level::Warn => item.style(Style::default().fg(Color::Yellow)),
                         log::Level::Info => item.style(Style::default().fg(Color::White)),
@@ -81,4 +83,32 @@ pub fn draw<'a>(
         .unwrap();
 
     Ok(())
+}
+
+static GUI_STATE: Once<Mutex<GuiState>> = Once::new();
+static TERMINAL: Once<Mutex<Terminal<FrameBrufferDisplay<'static>>>> = Once::new();
+
+pub fn initialize(terminal: Terminal<FrameBrufferDisplay<'static>>) {
+    GUI_STATE.call_once(|| Mutex::new(GuiState::new()));
+    TERMINAL.call_once(move || Mutex::new(terminal));
+}
+
+/// A logger implementation for Gui.
+pub struct GuiLogger;
+
+impl log::Log for GuiLogger {
+    fn enabled(&self, metadata: &log::Metadata) -> bool {
+        metadata.level() <= log::Level::Info
+    }
+
+    fn log(&self, record: &Record) {
+        let state = &mut GUI_STATE.get().unwrap().lock();
+        state.add_log(record);
+    }
+
+    fn flush(&self) {
+        let state = &GUI_STATE.get().unwrap().lock();
+        let mut terminal = &mut TERMINAL.get().unwrap().lock();
+        draw(&state, &mut terminal).unwrap();
+    }
 }

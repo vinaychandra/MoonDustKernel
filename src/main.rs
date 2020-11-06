@@ -13,10 +13,11 @@
 #![feature(const_fn_fn_ptr_basics)]
 
 use alloc::string::String;
-use common::{graphics::gui::GuiState, process::Process, ramdisk};
+use common::{graphics, process::Process, ramdisk};
 #[cfg(not(test))]
 use core::panic::PanicInfo;
 use elfloader::ElfBinary;
+use logging::UnifiedLogger;
 use ramdisk::ustar::UStarArchive;
 use tui::layout::Rect;
 
@@ -28,6 +29,7 @@ mod bootboot2;
 
 pub mod arch;
 pub mod common;
+pub mod logging;
 
 #[macro_use]
 extern crate lazy_static;
@@ -43,6 +45,8 @@ extern crate tui;
 
 #[thread_local]
 pub static mut TEST: u8 = 9;
+
+pub static KERNEL_LOGGER: UnifiedLogger = UnifiedLogger::new();
 
 /// Entry point for the Operating System.
 #[no_mangle] // don't mangle the name of this function
@@ -99,19 +103,13 @@ fn load_graphics() -> Result<(), String> {
     info!("Initializing the UI");
     let terminal = tui::Terminal::new(display).unwrap();
     info!("Terminal created");
-    let mut state = GuiState::new();
+    graphics::gui::initialize(terminal);
+    info!("Switching to GUI Logging");
 
-    for _ in 0..30 {
-        let mut b = log::RecordBuilder::new();
-        let test = b
-            .level(log::Level::Info)
-            .line(Some(5))
-            .args(format_args!("Some val"));
-        let val = test.build();
-        state.add_log(val);
-    }
+    // Initialize GUI logging.
+    KERNEL_LOGGER.enable_gui_logger();
+    info!("Project Thunderstorm");
 
-    crate::common::graphics::gui::draw(&state, terminal)?;
     info!("Run completed");
     Ok(())
 }

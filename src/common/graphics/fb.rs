@@ -130,7 +130,6 @@ impl<'a> Backend for FrameBrufferDisplay<'a> {
     }
 
     fn flush(&mut self) -> Result<(), tui::io::Error> {
-        info!("Flushing to screen");
         self.fb[..].copy_from_slice(&self.double_buffer);
         Ok(())
     }

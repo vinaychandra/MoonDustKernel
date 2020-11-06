@@ -41,7 +41,7 @@ macro_rules! serial_println {
 }
 
 /// A logger implementation to pass logs into SerialLogging Interface.
-pub(super) struct SerialLogger;
+pub struct SerialLogger;
 
 impl log::Log for SerialLogger {
     fn enabled(&self, metadata: &Metadata) -> bool {
