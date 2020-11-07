@@ -1,4 +1,5 @@
 use super::gdt;
+use spin::Mutex;
 use x86_64::{
     structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode},
     VirtAddr,
@@ -33,12 +34,13 @@ impl InterruptIndex {
 }
 
 static mut IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
+static OFFSET: Mutex<VirtAddr> = Mutex::new(VirtAddr::new_truncate(0));
 
 /// Initialize interrupts
 /// - Disable PIC
 /// - Enable APIC/xAPIC
 /// - Enable HPET
-pub fn initialize(_phys_mem_offset: VirtAddr) {
+pub fn initialize(phys_mem_offset: VirtAddr) {
     unsafe {
         IDT.double_fault
             .set_handler_fn(double_fault_handler)
@@ -46,6 +48,16 @@ pub fn initialize(_phys_mem_offset: VirtAddr) {
         IDT.page_fault.set_handler_fn(page_fault_handler);
         IDT.load();
     }
+
+    *OFFSET.lock() = phys_mem_offset;
+}
+
+pub fn load_interrupts() {
+    info!(target:"interrupts", "Setting up interrupts");
+
+    info!(target:"interrupts", "Disabling PIC");
+    super::devices::pic8259_simple::simple_pic::disable_pic();
+    info!(target:"interrupts", "PIC disabled");
 }
 
 /// Handler than be used for non-standard faults.

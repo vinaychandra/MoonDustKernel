@@ -1,3 +1,4 @@
+pub mod devices;
 pub mod gdt;
 pub mod globals;
 pub mod interrupts;

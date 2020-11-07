@@ -110,6 +110,9 @@ fn load_graphics() -> Result<(), String> {
     KERNEL_LOGGER.enable_gui_logger();
     info!("Project Thunderstorm");
 
+    // Setup interrupts
+    crate::arch::interrupts::load_interrupts();
+
     info!("Run completed");
     Ok(())
 }
