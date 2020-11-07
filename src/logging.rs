@@ -25,14 +25,13 @@ impl Log for UnifiedLogger {
     }
 
     fn log(&self, record: &log::Record) {
+        crate::arch::LOGGER.log(record);
+        crate::arch::LOGGER.flush();
+
         if self.gui_logger.0.load(Ordering::Relaxed) {
             self.gui_logger.1.log(record);
             self.gui_logger.1.flush();
         }
-
-        crate::arch::LOGGER.log(record);
-        crate::arch::LOGGER.flush();
-        self.flush();
     }
 
     fn flush(&self) {}

@@ -1,12 +1,15 @@
+use crate::common::syscall;
 use x86_64::{
-    instructions::{segmentation::set_cs, tables::load_tss},
+    instructions::{
+        segmentation::{load_ss, set_cs},
+        tables::load_tss,
+    },
     structures::{
         gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector},
         tss::TaskStateSegment,
     },
     VirtAddr,
 };
-use crate::common::syscall;
 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 
@@ -65,13 +68,14 @@ pub fn init() {
 
         let mut gdt = GlobalDescriptorTable::new();
         let kernel_code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
-        let kernel_data_selector = gdt.add_entry(Descriptor::UserSegment(0));
+        let kernel_data_selector = gdt.add_entry(Descriptor::kernel_data_segment());
 
         let user_data_selector = gdt.add_entry(Descriptor::user_data_segment());
         let user_code_selector = gdt.add_entry(Descriptor::user_code_segment());
 
         let tss_selector = gdt.add_entry(Descriptor::tss_segment(&TSS));
         GDT = gdt;
+
         SELECTORS = SegmentSelectors {
             kernel_code_selector,
             kernel_data_selector,
@@ -81,6 +85,7 @@ pub fn init() {
         };
         GDT.load();
         set_cs(SELECTORS.kernel_code_selector);
+        load_ss(SELECTORS.kernel_data_selector);
         load_tss(SELECTORS.tss_selector);
     }
 }
@@ -95,7 +100,7 @@ pub fn setup_usermode() {
         )
         .unwrap();
     }
-    
+
     let syscall_entry = syscall::syscall_entry as u64;
     x86_64::registers::model_specific::LStar::write(VirtAddr::new(syscall_entry));
 }

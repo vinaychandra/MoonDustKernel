@@ -3,10 +3,8 @@ use self::{
     timer::{hpet_timer_handler, timer_interrupt_handler},
 };
 
-use super::{gdt, globals};
+use super::gdt;
 use acpi::{AcpiTables, InterruptModel};
-use alloc::vec::Vec;
-use apic::{io_apic::IoApicBase, ApicBase};
 use spin::Mutex;
 use x86_64::{
     structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode},
@@ -62,14 +60,13 @@ pub fn initialize(phys_mem_offset: VirtAddr) {
         IDT[InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt_handler);
         IDT[InterruptIndex::HpetTimer.as_usize()].set_handler_fn(hpet_timer_handler);
 
+        IDT.general_protection_fault.set_handler_fn(unhandled_fault);
+
         IDT.load();
     }
 
     *OFFSET.lock() = phys_mem_offset;
 }
-
-#[thread_local]
-pub static mut LAPIC: Option<ApicBase> = None;
 
 pub unsafe fn load_interrupts() -> Result<(), &'static str> {
     info!(target:"interrupts", "Setting up interrupts");
@@ -90,47 +87,7 @@ pub unsafe fn load_interrupts() -> Result<(), &'static str> {
 
     let platform_info = acpi_tables.platform_info().unwrap();
     if let InterruptModel::Apic(apic) = platform_info.interrupt_model {
-        let mut apic_base =
-            ApicBase::new((apic.local_apic_address + globals::MEM_MAP_LOCATION) as *mut ());
-        info!(
-            target: "interrupts",
-            "APIC is at {:x} with ID {:?} and version {:?}",
-            apic.local_apic_address,
-            apic_base.id().read(),
-            apic_base.version().read()
-        );
-
-        // Enabling APIC logic.
-        let mut spu = apic_base.spurious_interrupt_vector();
-        let mut val = spu.read();
-        val.enable_apic_software(true);
-        spu.write(val);
-
-        info!(target: "interrupts", "APIC enabled: {}", apic_base.spurious_interrupt_vector().read().apic_software_enabled());
-
-        let mut ioapics: Vec<IoApicBase> = apic
-            .io_apics
-            .iter()
-            .map(|ioa| IoApicBase::new((ioa.address as usize + offset) as *mut u8))
-            .collect();
-        let first_ioapic = &mut ioapics[0];
-        let lapic_id = apic_base.id().read().id();
-
-        LAPIC = Some(apic_base);
-
-        let mut redirection_entry = first_ioapic.read_redirection_table_entry(1);
-        redirection_entry.set_destination(lapic_id);
-        redirection_entry.set_vector(33);
-        first_ioapic.write_redirection_table_entry(1, redirection_entry);
-
-        let mut redirection_entry = first_ioapic.read_redirection_table_entry(8);
-        redirection_entry.set_destination(lapic_id);
-        redirection_entry.set_vector(36);
-        first_ioapic.write_redirection_table_entry(8, redirection_entry);
-
-        info!(
-            target: "interrupts",
-            "Number of IoApics found: {}", ioapics.len());
+        super::devices::xapic::initialize_apic(*OFFSET.lock(), apic.io_apics[0].address as u64);
     } else {
         return Err("APIC data not found in ACPI tables.");
     }

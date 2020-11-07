@@ -1,5 +1,7 @@
 use x86_64::structures::idt::InterruptStackFrame;
 
+use super::InterruptIndex;
+
 /// Handler than be used for non-standard faults.
 pub extern "x86-interrupt" fn keyboard_handler(_stack_frame: &mut InterruptStackFrame) {
     unsafe {
@@ -15,9 +17,9 @@ pub extern "x86-interrupt" fn keyboard_handler(_stack_frame: &mut InterruptStack
         p2.write(a);
 
         warn!("Scan Code: {}", byte_read);
-        let lapic = &super::LAPIC;
+        let lapic = &super::super::devices::xapic::LAPIC;
         if let Some(lapic_val) = &*lapic {
-            lapic_val.end_of_interrupt();
+            lapic_val.send_eoi(InterruptIndex::Keyboard as u8);
         }
     }
 }
