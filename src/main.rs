@@ -111,7 +111,9 @@ fn load_graphics() -> Result<(), String> {
     info!("Project Thunderstorm");
 
     // Setup interrupts
-    crate::arch::interrupts::load_interrupts();
+    unsafe {
+        crate::arch::interrupts::load_interrupts();
+    }
 
     info!("Run completed");
     Ok(())

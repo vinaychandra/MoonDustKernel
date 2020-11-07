@@ -1,4 +1,5 @@
 use super::gdt;
+use acpi::AcpiTables;
 use spin::Mutex;
 use x86_64::{
     structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode},
@@ -52,12 +53,22 @@ pub fn initialize(phys_mem_offset: VirtAddr) {
     *OFFSET.lock() = phys_mem_offset;
 }
 
-pub fn load_interrupts() {
+pub unsafe fn load_interrupts() {
     info!(target:"interrupts", "Setting up interrupts");
 
     info!(target:"interrupts", "Disabling PIC");
     super::devices::pic8259_simple::simple_pic::disable_pic();
     info!(target:"interrupts", "PIC disabled");
+
+    info!(target:"interrupts", "Load ACPI tables");
+    let acpi_addr = crate::bootboot::bootboot.arch.x86_64.acpi_ptr as *const u8 as usize;
+    info!(target:"interrupts", "ACPI Addr is {:x}", acpi_addr);
+
+    let offset = OFFSET.lock().as_u64() as usize;
+    let handler = crate::common::devices::acpi::MemoryHandler::new(offset);
+    let acpi_tables =
+        AcpiTables::from_rsdt(handler, 2, acpi_addr).expect("ACPI Tables cannot be parsed.");
+    info!(target:"interrupts", "ACPI tables loaded successfully.");
 }
 
 /// Handler than be used for non-standard faults.

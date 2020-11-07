@@ -23,6 +23,9 @@ tui = { git = "https://github.com/vinaychandra/tui-rs", branch = "no_std" }
 rusttype = { version = "0.9", default-features = false, features = ["libm-math", "has-atomics"] }
 libm = { version = "0.2.1", default-features = false }
 
+# ACPI
+acpi = "2.0.0"
+
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 uart_16550 = "0.2.10"
 x86_64 = "0.12.2"
