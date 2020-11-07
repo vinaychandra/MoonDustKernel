@@ -36,14 +36,19 @@ SECTIONS
     .tdata : {
         __tdata_start = .;
         *(.tdata*)
-		. = ALIGN(4096);
         __tdata_end = .;
+    } :boot :tls
+
+
+    .tbss : {
         __tbss_start = .;
         *(.tbss*)
-        . += 8;
-        . = ALIGN(4096);
-        __tbss_end = .;
     } :boot :tls
+
+    /*TBSS has no size. So, we force it to have size here.*/
+    . += SIZEOF(.tbss);
+    __tbss_end = .;
+
 
     /DISCARD/ : { *(.eh_frame) *(.comment) }
 }

@@ -65,11 +65,7 @@ pub fn initialize_tls() {
         )
     };
     info!(target: "initialize_tls", "TLS data loaded. Setting fs");
-    let fs_ptr = unsafe {
-        ((tls_ptr as *const u8 as u64)
-            + (&__tbss_end as *const usize as u64 - &__tdata_start as *const usize as u64))
-            as *mut u64
-    };
+    let fs_ptr = ((tls_ptr as *const u8 as u64) + (total_size as u64)) as *mut u64;
     x86_64::registers::model_specific::FsBase::write(VirtAddr::from_ptr(fs_ptr));
     unsafe {
         *fs_ptr = fs_ptr as u64;
