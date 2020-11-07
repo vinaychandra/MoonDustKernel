@@ -112,7 +112,7 @@ fn load_graphics() -> Result<(), String> {
 
     // Setup interrupts
     unsafe {
-        crate::arch::interrupts::load_interrupts();
+        crate::arch::interrupts::load_interrupts().unwrap();
     }
 
     info!("Run completed");

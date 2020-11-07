@@ -41,10 +41,10 @@ check-image: target/$(PLATFORM)-moondust/debug/moondust-kernel
 	./others/bootboot/mkbootimg-${HOST} check $^
 
 efi: target/disk-$(PLATFORM).img
-	qemu-system-x86_64 -bios $(OVMF) -m 64 -drive file=./target/disk-x86_64.img,format=raw -serial stdio
+	qemu-system-x86_64 -bios $(OVMF) -m 128 -drive file=./target/disk-x86_64.img,format=raw -serial stdio
 
 efi-wait: target/disk-$(PLATFORM).img
-	qemu-system-x86_64 -bios $(OVMF) -m 64 -drive file=./target/disk-x86_64.img,format=raw -serial stdio -s -S
+	qemu-system-x86_64 -bios $(OVMF) -m 128 -drive file=./target/disk-x86_64.img,format=raw -serial stdio -s -S
 
 clean:
 	cargo clean
