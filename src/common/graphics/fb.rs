@@ -4,32 +4,43 @@ use num_traits::float::Float;
 use rusttype::{point, Point};
 use tui::{backend::Backend, layout::Rect, style::Color};
 
+use crate::arch::globals::{GUI_CELL_HEIGHT, GUI_CELL_WIDTH};
+
 use super::fonts::FontCache;
 
 pub struct FrameBrufferDisplay<'a> {
     fb: &'a mut [u32],
     double_buffer: Vec<u32>,
-    bb: Rect,
+    cell_rect: Rect,
     pub cursor: (u16, u16),
     font_cache: FontCache<'a>,
-    scanline: u32,
+    pixels_x: u16,
 }
 
 impl<'a> FrameBrufferDisplay<'a> {
-    pub fn new(fb: &'a mut [u32], size: Rect, scanline: u32) -> FrameBrufferDisplay {
+    /// Create a new Frame buffer display. It takes a new
+    /// framebuffer data, pixels count in x and y. The number of cells
+    /// are determined by `pixels_x` and `pixels_y`
+    pub fn new(fb: &'a mut [u32], pixels_x: u16, pixles_y: u16) -> FrameBrufferDisplay {
         let db: Vec<u32> = vec![0; fb.len()];
+        let cell_count_x = pixels_x / GUI_CELL_WIDTH;
+        let cell_count_y = pixles_y / GUI_CELL_HEIGHT;
+        let cell_rect = Rect::new(0, 0, cell_count_x, cell_count_y);
+
+        info!(target:"FrameBuffer", "Creating a display with cells: {}x{}", cell_count_x, cell_count_y);
+
         FrameBrufferDisplay {
             fb,
-            bb: size,
+            cell_rect,
             double_buffer: db,
             cursor: (0, 0),
             font_cache: FontCache::new(),
-            scanline,
+            pixels_x,
         }
     }
 
     pub fn put_raw_pixel(&mut self, point: Point<i32>, c: (u8, u8, u8)) {
-        let index: u32 = (point.x + (point.y * self.scanline as i32)) as u32;
+        let index: u32 = (point.x + (point.y * self.pixels_x as i32)) as u32;
         let val: u32 = (c.0 as u32) << 16 as u32 | (c.1 as u32) << 8 as u32 | (c.2 as u32) as u32;
 
         if index < self.double_buffer.len() as u32 {
@@ -38,7 +49,7 @@ impl<'a> FrameBrufferDisplay<'a> {
             warn!(
                 "Pixel failed.. {:?} {:?} {:?}",
                 point,
-                self.scanline,
+                self.pixels_x,
                 self.double_buffer.len()
             );
         }
@@ -80,16 +91,16 @@ impl<'a> Backend for FrameBrufferDisplay<'a> {
                     let x = x as i32 + bb.min.x;
                     let y = y as i32 + bb.min.y;
 
-                    let x = (self.font_cache.cell_width * cx) as i32 + x;
-                    let y = (self.font_cache.cell_height * cy) as i32 + y;
+                    let x = (GUI_CELL_WIDTH * cx) as i32 + x;
+                    let y = (GUI_CELL_HEIGHT * cy) as i32 + y;
 
                     self.put_raw_pixel(point(x, y), color);
                 });
             } else {
-                for x in 0..self.font_cache.cell_width {
-                    for y in 0..self.font_cache.cell_height {
-                        let x: i32 = (self.font_cache.cell_width * cx) as i32 + x as i32;
-                        let y: i32 = (self.font_cache.cell_height * cy) as i32 + y as i32;
+                for x in 0..GUI_CELL_WIDTH {
+                    for y in 0..GUI_CELL_HEIGHT {
+                        let x: i32 = (GUI_CELL_WIDTH * cx) as i32 + x as i32;
+                        let y: i32 = (GUI_CELL_HEIGHT * cy) as i32 + y as i32;
 
                         self.put_raw_pixel(point(x, y), bg);
                     }
@@ -126,7 +137,7 @@ impl<'a> Backend for FrameBrufferDisplay<'a> {
     }
 
     fn size(&self) -> Result<tui::layout::Rect, tui::io::Error> {
-        Ok(self.bb)
+        Ok(self.cell_rect)
     }
 
     fn flush(&mut self) -> Result<(), tui::io::Error> {

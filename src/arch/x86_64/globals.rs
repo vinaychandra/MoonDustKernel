@@ -19,3 +19,9 @@ pub const KERNEL_STACK_TOTAL_SIZE: usize = 10 * 1024 * 1024 * 1024; // 10 GiB
 
 pub const USER_STACK_END: usize = 0x6FFF_FFFF_FFFF;
 pub const USER_STACK_DEFAULT_SIZE: usize = 4 * 1024 * 1024; // 4 MB
+
+// Sizes of a single cell.
+pub const GUI_CELL_WIDTH: u16 = 9;
+pub const GUI_CELL_HEIGHT: u16 = 14;
+pub const GUI_FONT_HEIGHT: f32 = 11.0;
+pub const GUI_FONT_X_SCALE: f32 = 1.3; // Scale in x direction for fonts.
