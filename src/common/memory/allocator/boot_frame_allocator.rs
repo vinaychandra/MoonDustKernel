@@ -33,6 +33,7 @@ pub struct BootFrameAllocator {
 
 #[allow(dead_code)]
 impl BootFrameAllocator {
+    /// Create a new boot frame allocator with memory map entries.
     pub fn new(memory_iter: &'static [MMapEnt]) -> BootFrameAllocator {
         let mut first_memory_region: MMapEnt;
         let mut index = 0;

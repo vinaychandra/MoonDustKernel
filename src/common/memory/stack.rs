@@ -148,6 +148,7 @@ impl Drop for Stack {
     }
 }
 
+/// Initialize stack provider on BSP.
 pub fn initialize_stack_provider_bsp(
     mapper: &mut dyn IMemoryMapper,
     allocator: &dyn IPhysicalMemoryAllocator,

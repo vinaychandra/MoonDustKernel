@@ -1,6 +1,7 @@
 use super::allocator::physical_memory_allocator::IPhysicalMemoryAllocator;
 
 /// A memory mapper used to map virtual memory.
+/// This usually wraps around page table logic to map addresses.
 pub trait IMemoryMapper {
     /// Map a virtual address to physical address and the given size.
     fn map(
@@ -32,10 +33,12 @@ pub trait IMemoryMapper {
 }
 
 pub trait IPageTable {
+    /// Get the address of the current page table.
     fn get_addr(&self) -> *const dyn IPageTable;
 }
 
 bitflags! {
+    /// Permissions for the current page.
     pub struct MapperPermissions : u8 {
         const READ      = 0b0000_0000;
         const WRITE     = 0b0000_0010;

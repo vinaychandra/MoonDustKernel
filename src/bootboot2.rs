@@ -1,3 +1,5 @@
+//! Additional support files for BOOTBOOT providing usability wrappers.
+
 use crate::bootboot::*;
 
 // Custom Logic for BOOT BOOT

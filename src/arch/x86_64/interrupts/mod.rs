@@ -46,9 +46,6 @@ static mut IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
 static OFFSET: Mutex<VirtAddr> = Mutex::new(VirtAddr::new_truncate(0));
 
 /// Initialize interrupts
-/// - Disable PIC
-/// - Enable APIC/xAPIC
-/// - Enable HPET
 pub fn initialize(phys_mem_offset: VirtAddr) {
     unsafe {
         IDT.double_fault
@@ -68,6 +65,7 @@ pub fn initialize(phys_mem_offset: VirtAddr) {
     *OFFSET.lock() = phys_mem_offset;
 }
 
+/// Load the interrupt logic.
 pub unsafe fn load_interrupts() -> Result<(), &'static str> {
     info!(target:"interrupts", "Setting up interrupts");
 

@@ -82,5 +82,7 @@ pub fn initialize_physical_memory_allocator(
 }
 
 pub fn get_physical_memory_allocator() -> &'static impl IPhysicalMemoryAllocator {
-    PHYSICAL_MEMORY_PROVIDER.get().unwrap()
+    PHYSICAL_MEMORY_PROVIDER
+        .get()
+        .expect("Physical memory allocator is not initialized.")
 }

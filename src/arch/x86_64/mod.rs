@@ -1,3 +1,5 @@
+//! x86_64 specific startup logic.
+
 pub mod devices;
 pub mod gdt;
 pub mod globals;
@@ -20,11 +22,18 @@ use serial::SerialLogger;
 use spin::Mutex;
 use x86_64::{registers::control::EferFlags, structures::paging::OffsetPageTable, VirtAddr};
 
+/// Logger that uses serial to output logs.
+/// Architecture level logs for x86_64.
 pub static LOGGER: SerialLogger = SerialLogger;
 
+static MEM: Mutex<Option<(Option<OffsetPageTable>, UnsafeCell<BootFrameAllocator>)>> =
+    Mutex::new(None);
+
+/// Initialization on bootstrap processor.
 pub fn initialize_architecture_bsp() -> ! {
     info!(target: "initialize_architecture", "Initializing x86_64 architecture.");
 
+    // This enables syscall extensions on x86_64
     {
         let mut efer = x86_64::registers::model_specific::Efer::read();
         efer |= EferFlags::NO_EXECUTE_ENABLE;
@@ -40,33 +49,37 @@ pub fn initialize_architecture_bsp() -> ! {
         BootFrameAllocator::new(entries)
     };
 
-    // 2 pages for initial bootstrapping.
-    let addr = frame_allocator
+    // 2 pages for initial bootstrapping. This acts as an intermediate step.
+    // We need this for setting up for the main stacks but the bootloader only provdes 1K in memory.
+    let level_2_addr = frame_allocator
         .alloc(8096, 4096)
         .expect("Cannot allocate bootstrap stack")
         + 8096
         - globals::STACK_ALIGN;
 
     let frame_allocator = UnsafeCell::new(frame_allocator);
-
     {
         let mut a = MEM.lock();
         *a = Some((None, frame_allocator));
     }
 
-    // Identity mapped data.
+    // Switch to level 2.
     unsafe {
         asm!("
         mov rsp, {0}
         mov rbp, {0}
         jmp {1}
-        ", in(reg) addr, sym initialize_architecture_bsp2);
+        ", in(reg) level_2_addr, sym initialize_architecture_bsp2);
     }
 
     error!("Unexpected continuation of stack switching.");
     loop {}
 }
 
+/// Level 2 initializing.
+/// This creates a memory map in higher half and then jumps to it.
+/// There is a need for this because it requires more memory than the
+/// bootloader provides.
 pub fn initialize_architecture_bsp2() {
     // Initialize logging.
     log::set_logger(&crate::KERNEL_LOGGER)
@@ -88,9 +101,7 @@ pub fn initialize_architecture_bsp2() {
     unsafe { asm!("jmp {}", sym initialize_architecture_bsp_stack) };
 }
 
-static MEM: Mutex<Option<(Option<OffsetPageTable>, UnsafeCell<BootFrameAllocator>)>> =
-    Mutex::new(None);
-
+/// Initialize on the main stack. This uses the final stack used by the kernel.
 pub fn initialize_architecture_bsp_stack() -> ! {
     let (mapper, mut frame_allocator) = MEM.lock().take().unwrap();
     let mut mapper = mapper.unwrap();
