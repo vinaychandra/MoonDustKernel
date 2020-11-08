@@ -5,7 +5,6 @@ pub mod gdt;
 pub mod globals;
 pub mod interrupts;
 pub mod memory;
-pub mod process;
 pub mod serial;
 
 use crate::{

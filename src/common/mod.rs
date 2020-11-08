@@ -7,6 +7,7 @@ pub mod memory;
 pub mod process;
 pub mod ramdisk;
 pub mod syscall;
+pub mod utils;
 
 /// Align value downwards.
 ///
