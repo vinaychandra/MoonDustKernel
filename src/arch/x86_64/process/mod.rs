@@ -9,14 +9,14 @@ use futures_lite::{pin, Future};
 
 static SHOULD_WAKE: AtomicBool = AtomicBool::new(false);
 
-pub fn block_on<T>(task: impl Future<Output = T>) {
+pub fn block_on<T>(task: impl Future<Output = T>) -> T {
     let waker = SchedulerWaker::new();
     pin!(task);
     loop {
         let mut context = Context::from_waker(&waker);
         match task.as_mut().poll(&mut context) {
-            Poll::Ready(_) => {
-                return;
+            Poll::Ready(v) => {
+                return v;
             }
             Poll::Pending => {}
         };
