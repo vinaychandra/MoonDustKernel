@@ -17,7 +17,10 @@
 #![feature(future_poll_fn)]
 
 use alloc::string::String;
-use common::{graphics, ramdisk};
+use common::{
+    executor::priority::{Priority, PriorityExecutor},
+    graphics, ramdisk,
+};
 use core::{
     panic::PanicInfo,
     sync::atomic::{AtomicU8, Ordering},
@@ -34,6 +37,7 @@ mod bootboot2;
 pub mod arch;
 pub mod common;
 pub mod logging;
+pub mod tasks;
 
 #[macro_use]
 extern crate lazy_static;
@@ -94,6 +98,12 @@ pub fn main_bsp() -> ! {
     }
 
     info!("Run completed");
+
+    let exec = PriorityExecutor::new();
+    exec.spawn(Priority::Medium, tasks::keyboard::print_keypresses())
+        .detach();
+
+    crate::arch::process::block_on(exec.run());
 
     arch::hlt_loop();
 }

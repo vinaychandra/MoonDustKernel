@@ -2,9 +2,9 @@
 //! This module presents common shared code between multiple architectures.
 
 pub mod devices;
+pub mod executor;
 pub mod graphics;
 pub mod memory;
-pub mod process;
 pub mod ramdisk;
 pub mod syscall;
 pub mod utils;

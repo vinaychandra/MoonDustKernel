@@ -29,10 +29,14 @@ acpi = "2.0.0"
 # Async Task
 async-task = { version = "4.0.3", default-features = false }
 futures-lite = { version="1.11.2", default-features = false, features = ["alloc"] }
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
 
 # Random
 rand = {version = "0.7.3", default-features = false}
 rand_chacha = {version = "0.2.2", default-features = false}
+
+# Keyboard
+pc-keyboard = "0.5.1"
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 uart_16550 = "0.2.10"
