@@ -105,12 +105,12 @@ pub fn main_bsp() -> ! {
 
     info!(
         "Startup duration is {:?}",
-        crate::arch::devices::hpet::time_from_startup()
+        crate::common::time::get_uptime()
     );
 
     info!(
         "Current time is {}",
-        crate::arch::devices::cmos::get_current_time()
+        crate::common::time::get_current_time()
     );
 
     crate::arch::process::block_on(exec.run());

@@ -96,6 +96,11 @@ pub unsafe fn load_interrupts() -> Result<(), &'static str> {
     super::devices::hpet::init(VirtAddr::new(hpet_info.base_address as u64));
     info!(target:"interrupts", "HPET ready");
 
+    // Setup CMOS
+    info!(target:"interrupts", "Setting up CMOS");
+    super::devices::cmos::init_cmos();
+    info!(target:"interrupts", "CMOS ready");
+
     x86_64::instructions::interrupts::enable();
 
     Ok(())

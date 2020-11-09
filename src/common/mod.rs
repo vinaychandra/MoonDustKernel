@@ -7,6 +7,7 @@ pub mod graphics;
 pub mod memory;
 pub mod ramdisk;
 pub mod syscall;
+pub mod time;
 pub mod utils;
 
 /// Align value downwards.

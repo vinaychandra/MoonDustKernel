@@ -67,10 +67,11 @@ pub unsafe fn init(hpet_address: VirtAddr) {
 
     // Store the instance
     HPET_INSTANCE.init_once(|| hpet_instance);
+    crate::common::time::UPTIME_PROVIDER.init_once(|| time_from_startup);
 }
 
 // TODO: Support overflow.
-pub fn time_from_startup() -> Duration {
+fn time_from_startup() -> Duration {
     if let Some(hpet) = HPET_INSTANCE.get() {
         let tick_in_nanos = hpet.get_period() / 1000_000;
         let raw = hpet.get_main_counter_value();
