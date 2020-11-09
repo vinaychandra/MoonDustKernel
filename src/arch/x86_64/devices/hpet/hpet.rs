@@ -120,3 +120,5 @@ impl Hpet {
         Some(HpetTimer::new(timer_address as *mut HpetTimerRegister))
     }
 }
+
+unsafe impl Sync for Hpet {}

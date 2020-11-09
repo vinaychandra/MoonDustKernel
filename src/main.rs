@@ -103,6 +103,11 @@ pub fn main_bsp() -> ! {
     exec.spawn(Priority::Medium, tasks::keyboard::print_keypresses())
         .detach();
 
+    info!(
+        "VAL IS {:?}",
+        crate::arch::devices::hpet::time_from_startup()
+    );
+
     crate::arch::process::block_on(exec.run());
 
     arch::hlt_loop();

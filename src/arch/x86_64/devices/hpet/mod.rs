@@ -7,9 +7,13 @@ mod hpet_timer;
 mod mmio;
 mod registers;
 
+use chrono::Duration;
+use conquer_once::spin::OnceCell;
 use hpet::*;
 use registers::*;
 use x86_64::VirtAddr;
+
+static HPET_INSTANCE: OnceCell<Hpet> = OnceCell::uninit();
 
 /// Try to initialize the HPET.
 pub unsafe fn init(hpet_address: VirtAddr) {
@@ -40,8 +44,9 @@ pub unsafe fn init(hpet_address: VirtAddr) {
     let irq_period_fs = irq_period_ns * 1_000_000;
     info!(
         target: "hpet",
-        "HPET frequency: {} Hz",
-        hpet_instance.get_frequency()
+        "HPET frequency: {} Hz and Period: {}",
+        hpet_instance.get_frequency(),
+        hpet_instance.get_period()
     );
     info!(target: "hpet", "HPET IRQ period: {} ms", irq_period_ms);
 
@@ -59,4 +64,18 @@ pub unsafe fn init(hpet_address: VirtAddr) {
 
     // Clear the interrupt state.
     hpet_instance.enable();
+
+    // Store the instance
+    HPET_INSTANCE.init_once(|| hpet_instance);
+}
+
+// TODO: Support overflow.
+pub fn time_from_startup() -> Duration {
+    if let Some(hpet) = HPET_INSTANCE.get() {
+        let tick_in_nanos = hpet.get_period() / 1000_000;
+        let raw = hpet.get_main_counter_value();
+        Duration::nanoseconds(raw as i64 * tick_in_nanos as i64)
+    } else {
+        Duration::zero()
+    }
 }
