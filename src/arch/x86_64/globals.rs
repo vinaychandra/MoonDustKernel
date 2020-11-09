@@ -12,7 +12,7 @@ pub const KERNEL_HEAP_SIZE_INITIAL: usize = 10 * 1024 * 1024; // 10 MB
 pub const KERNEL_HEAP_SIZE_TOTAL: usize = 10 * 1024 * 1024 * 1024; // 10 GB
 
 pub const KERNEL_STACK_BSP: usize = 0x_FFFF_FF90_0000_0000;
-pub const KERNEL_STACK_BSP_SIZE: usize = 10 * 1024 * 1024; // 50 MB
+pub const KERNEL_STACK_BSP_SIZE: usize = 10 * 1024 * 1024; // 10 MB
 pub const KERNEL_STACK_PRE_ALLOCATED: usize = 10 * 1024 * 1024; // 10 MB
 pub const KERNEL_STACK_PER_PROCESS: usize = 100 * 1024; // 100 KiB
 pub const KERNEL_STACK_TOTAL_SIZE: usize = 10 * 1024 * 1024 * 1024; // 10 GiB

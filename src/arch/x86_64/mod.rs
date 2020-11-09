@@ -10,10 +10,13 @@ pub mod serial;
 
 use crate::{
     bootboot,
-    common::memory::{
-        allocator::{boot_frame_allocator::BootFrameAllocator, physical_memory_allocator},
-        heap,
-        stack::{self, Stack},
+    common::{
+        align_down,
+        memory::{
+            allocator::{boot_frame_allocator::BootFrameAllocator, physical_memory_allocator},
+            heap,
+            stack::{self, Stack},
+        },
     },
 };
 use core::cell::UnsafeCell;
@@ -25,6 +28,8 @@ use x86_64::{registers::control::EferFlags, structures::paging::OffsetPageTable,
 /// Logger that uses serial to output logs.
 /// Architecture level logs for x86_64.
 pub static LOGGER: SerialLogger = SerialLogger;
+
+static BSP_STACK: [u8; 8192] = [0; 8192];
 
 static MEM: Mutex<Option<(Option<OffsetPageTable>, UnsafeCell<BootFrameAllocator>)>> =
     Mutex::new(None);
@@ -44,24 +49,14 @@ pub fn initialize_architecture_bsp() -> ! {
     }
 
     info!(target: "initialize_architecture", "Setting up memory.");
-    let mut frame_allocator = {
-        let entries = unsafe { bootboot::bootboot.get_mmap_entries() };
-        BootFrameAllocator::new(entries)
-    };
 
     // 2 pages for initial bootstrapping. This acts as an intermediate step.
     // We need this for setting up for the main stacks but the bootloader only provdes 1K in memory.
-    let level_2_addr = frame_allocator
-        .alloc(8096, 4096)
-        .expect("Cannot allocate bootstrap stack")
-        + 8096
-        - globals::STACK_ALIGN;
-
-    let frame_allocator = UnsafeCell::new(frame_allocator);
-    {
-        let mut a = MEM.lock();
-        *a = Some((None, frame_allocator));
-    }
+    let bsp_addr = &BSP_STACK[0] as *const u8 as usize;
+    let level_2_addr = align_down(
+        (bsp_addr + BSP_STACK.len()) as u64,
+        globals::STACK_ALIGN as u64,
+    );
 
     // Switch to level 2.
     unsafe {
@@ -86,7 +81,12 @@ pub fn initialize_architecture_bsp2() {
         .map(|()| log::set_max_level(LevelFilter::Info))
         .expect("Setting logger failed");
 
-    let (_, mut frame_allocator) = MEM.lock().take().unwrap();
+    let frame_allocator = {
+        let entries = unsafe { bootboot::bootboot.get_mmap_entries() };
+        BootFrameAllocator::new(entries)
+    };
+    let mut frame_allocator = UnsafeCell::new(frame_allocator);
+
     let mut mapper = memory::init_bsp(&mut frame_allocator);
     let new_stack = Stack::bsp_kernel_stack(&mut mapper, &mut frame_allocator).unwrap();
 

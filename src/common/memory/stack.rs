@@ -47,20 +47,26 @@ impl Stack {
             )
         };
 
+        // we ignore the fist page so that it throws a page fault
         mapper
-            .map_with_alloc(addr, size, MapperPermissions::WRITE, allocator)
+            .map_with_alloc(
+                (addr as usize + globals::PAGE_SIZE) as *mut u8,
+                size,
+                MapperPermissions::WRITE,
+                allocator,
+            )
             .unwrap();
 
-        unsafe {
-            let high_addr =
-                addr.offset((size + globals::PAGE_SIZE - globals::STACK_ALIGN) as isize);
+        let high_addr = align_down(
+            addr as u64 + size as u64 + globals::PAGE_SIZE as u64,
+            globals::STACK_ALIGN as u64,
+        ) as *mut u8;
 
-            Stack {
-                high_addr: high_addr,
-                size: size + globals::PAGE_SIZE,
-                frame_pointer: AtomicPtr::new(high_addr),
-                stack_pointer: AtomicPtr::new(high_addr),
-            }
+        Stack {
+            high_addr,
+            size,
+            frame_pointer: AtomicPtr::new(high_addr),
+            stack_pointer: AtomicPtr::new(high_addr),
         }
     }
 
