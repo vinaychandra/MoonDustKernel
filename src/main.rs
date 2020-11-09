@@ -104,8 +104,13 @@ pub fn main_bsp() -> ! {
         .detach();
 
     info!(
-        "VAL IS {:?}",
+        "Startup duration is {:?}",
         crate::arch::devices::hpet::time_from_startup()
+    );
+
+    info!(
+        "Current time is {}",
+        crate::arch::devices::cmos::get_current_time()
     );
 
     crate::arch::process::block_on(exec.run());
