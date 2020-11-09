@@ -12,6 +12,7 @@ linked_list_allocator = "0.8.6"
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
 spin = "0.7"
 bitflags = "1.2"
+bitfield = "0.13"
 elfloader = "0.11"
 xmas-elf = "0.7"
 num-traits = { version = "0.2", default-features = false, features = ["libm"] }

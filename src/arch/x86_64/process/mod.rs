@@ -26,6 +26,7 @@ pub fn block_on<T>(task: impl Future<Output = T>) {
             x86_64::instructions::interrupts::enable();
             continue;
         } else {
+            info!("Sleeping");
             x86_64::instructions::interrupts::enable_interrupts_and_hlt();
         }
     }

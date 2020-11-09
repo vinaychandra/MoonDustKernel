@@ -14,8 +14,6 @@ pub extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: &mut Interru
 }
 
 pub extern "x86-interrupt" fn hpet_timer_handler(_stack_frame: &mut InterruptStackFrame) {
-    info!("TICK");
-
     unsafe {
         let lapic = &super::super::devices::xapic::LAPIC;
         if let Some(lapic_val) = &*lapic {

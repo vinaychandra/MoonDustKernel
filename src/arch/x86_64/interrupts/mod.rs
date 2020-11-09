@@ -4,7 +4,7 @@ use self::{
 };
 
 use super::gdt;
-use acpi::{AcpiTables, InterruptModel};
+use acpi::{AcpiTables, HpetInfo, InterruptModel};
 use spin::Mutex;
 use x86_64::{
     structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode},
@@ -89,6 +89,12 @@ pub unsafe fn load_interrupts() -> Result<(), &'static str> {
     } else {
         return Err("APIC data not found in ACPI tables.");
     }
+
+    // Setup HPET
+    info!(target:"interrupts", "Setting up HPET");
+    let hpet_info = HpetInfo::new(&acpi_tables).expect("Kernel requires HPET");
+    super::devices::hpet::init(VirtAddr::new(hpet_info.base_address as u64));
+    info!(target:"interrupts", "HPET ready");
 
     x86_64::instructions::interrupts::enable();
 
