@@ -14,7 +14,8 @@ enum ProcessState {
     NotRunning,
     Yielded,
     Complete(u8),
-    Preempted(u64, u64), // RSP RBP
+    Preempted(*const (), *const ()),        // RSP RBP
+    ResumePreemption(*const (), *const ()), // RSP RBP
 }
 
 pub struct PreemptableFuture {
@@ -92,10 +93,15 @@ unsafe fn trampoline_1() -> Poll<u8> {
             return Poll::Pending;
         }
         ProcessState::Complete(v) => return Poll::Ready(v),
-        ProcessState::Preempted(rsp, rbp) => asm!(
+        ProcessState::Preempted(rsp, rbp) => {
+            (*CUR_TASK).state = ProcessState::ResumePreemption(rsp, rbp);
+            (*CUR_CONTEXT).waker().wake_by_ref();
+            return Poll::Pending;
+        }
+        ProcessState::ResumePreemption(rsp, rbp) => asm!(
             "
-                mov {0}, rsp
-                mov {1}, rbp
+                mov rsp, {0}
+                mov rbp, {1}
                 jmp preemptive_yield_j
             ",
             in(reg) rsp,
@@ -123,6 +129,9 @@ unsafe fn trampoline_2() {
         ProcessState::Preempted(_, _) => {
             panic!("Trampoline2 cannot be called when process state is preempted")
         }
+        ProcessState::ResumePreemption(_, _) => {
+            panic!("Trampoline2 cannot be called when process state is preempted (resumepre)")
+        }
     };
 
     match result {
@@ -143,8 +152,8 @@ unsafe fn trampoline_2() {
 #[inline(never)]
 pub fn preemptive_yield() {
     unsafe {
-        let rsp: u64;
-        let rbp: u64;
+        let rsp: *const ();
+        let rbp: *const ();
         asm!("
                 mov {0}, rsp
                 mov {1}, rbp",
@@ -156,10 +165,10 @@ pub fn preemptive_yield() {
         asm!("
             mov rsp, {0}
             mov rbp, {1}
-            jmp trampoline_1_j", in(reg) rsp, in(reg) rbp
-        );
+            jmp trampoline_1_j
 
-        // Calling this will simply return from this function.
-        asm!("preemptive_yield_j:"); // Used to skip the stack setting..
+            preemptive_yield_j:
+        ", in(reg) rsp, in(reg) rbp
+        );
     }
 }
