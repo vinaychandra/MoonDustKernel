@@ -1,5 +1,7 @@
 use super::{
-    allocator::physical_memory_allocator::IPhysicalMemoryAllocator,
+    allocator::physical_memory_allocator::{
+        get_physical_memory_allocator, IPhysicalMemoryAllocator,
+    },
     paging::{IMemoryMapper, MapperPermissions},
 };
 use crate::{arch::globals, common::align_down};
@@ -30,11 +32,18 @@ impl Stack {
         }
     }
 
+    pub fn new_kernel_stack_with_default_allocator(
+        size: usize,
+        mapper: &mut dyn IMemoryMapper,
+    ) -> Stack {
+        Self::new_kernel_stack(size, mapper, get_physical_memory_allocator())
+    }
+
     /// Create a new stack with the given size.
     pub fn new_kernel_stack(
         size: usize,
-        mapper: &mut dyn IMemoryMapper,
-        allocator: &dyn IPhysicalMemoryAllocator,
+        _mapper: &mut dyn IMemoryMapper,
+        _allocator: &dyn IPhysicalMemoryAllocator,
     ) -> Stack {
         debug_assert!(
             size % globals::PAGE_SIZE == 0,
@@ -48,14 +57,14 @@ impl Stack {
         };
 
         // we ignore the fist page so that it throws a page fault
-        mapper
-            .map_with_alloc(
-                (addr as usize + globals::PAGE_SIZE) as *mut u8,
-                size,
-                MapperPermissions::WRITE,
-                allocator,
-            )
-            .unwrap();
+        // mapper
+        //     .map_with_alloc(
+        //         (addr as usize + globals::PAGE_SIZE) as *mut u8,
+        //         size,
+        //         MapperPermissions::WRITE,
+        //         allocator,
+        //     )
+        //     .unwrap();
 
         let high_addr = align_down(
             addr as u64 + size as u64 + globals::PAGE_SIZE as u64,
@@ -160,7 +169,7 @@ pub fn initialize_stack_provider_bsp(
     allocator: &dyn IPhysicalMemoryAllocator,
 ) {
     let start_addr =
-        globals::KERNEL_STACK_BSP + globals::KERNEL_STACK_BSP_SIZE + globals::PAGE_SIZE;
+        globals::KERNEL_STACK_BSP + globals::KERNEL_STACK_BSP_SIZE + 2 * globals::PAGE_SIZE;
     mapper
         .map_with_alloc(
             start_addr as *const u8,

@@ -21,6 +21,9 @@ pub struct PreemptableFuture {
     data: Data,
 }
 
+unsafe impl Send for PreemptableFuture {}
+unsafe impl Sync for PreemptableFuture {}
+
 struct Data {
     /// The stack on which this future is running.
     stack: Stack,
@@ -31,12 +34,12 @@ struct Data {
 }
 
 impl PreemptableFuture {
-    pub fn new(entry_point: impl Future<Output = u8> + 'static) -> PreemptableFuture {
+    pub fn new(entry_point: impl Future<Output = u8> + 'static, stack: Stack) -> PreemptableFuture {
         PreemptableFuture {
             data: Data {
-                stack: Stack::empty(),
+                stack,
                 original_future: Box::pin(entry_point),
-                state: ProcessState::Yielded,
+                state: ProcessState::NotRunning,
             },
         }
     }
@@ -102,6 +105,7 @@ unsafe fn trampoline_1() -> Poll<u8> {
 
     // Should never come here
     trampoline_2(); // Force compile t2
+    preemptive_yield(); // Force compile preemptive yield
     Poll::Pending
 }
 

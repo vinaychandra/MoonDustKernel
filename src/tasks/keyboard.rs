@@ -65,10 +65,12 @@ impl Stream for ScancodeStream {
     }
 }
 
-pub async fn print_keypresses() {
+pub async fn print_keypresses() -> u8 {
     let mut scancodes = ScancodeStream::new();
 
     while let Some(scancode) = scancodes.next().await {
         info!("KeyEvent: {:?}", scancode);
     }
+
+    0
 }

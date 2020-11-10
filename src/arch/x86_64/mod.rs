@@ -146,7 +146,7 @@ pub fn initialize_architecture_bsp_stack() -> ! {
         info!(target: "initialize_architecture_bsp", "Stack provider initialized");
     }
 
-    crate::main_bsp();
+    crate::main_bsp(&mut mapper);
 }
 
 /// Halt the CPU until next interrupt.
