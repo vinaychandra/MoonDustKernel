@@ -7,6 +7,8 @@ use core::{
 use alloc::{sync::Arc, task::Wake};
 use futures_lite::{pin, Future};
 
+pub mod preemptable_future;
+
 static SHOULD_WAKE: AtomicBool = AtomicBool::new(false);
 
 pub fn block_on<T>(task: impl Future<Output = T>) -> T {
