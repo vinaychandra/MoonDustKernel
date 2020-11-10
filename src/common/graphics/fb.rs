@@ -80,6 +80,16 @@ impl<'a> Backend for FrameBrufferDisplay<'a> {
             let fg = convert_color(cell.fg).unwrap_or(default_fg);
             let bg = convert_color(cell.bg).unwrap_or(default_bg);
 
+            // Clear the cell
+            for x in 0..GUI_CELL_WIDTH {
+                for y in 0..GUI_CELL_HEIGHT {
+                    let x: i32 = (GUI_CELL_WIDTH * cx) as i32 + x as i32;
+                    let y: i32 = (GUI_CELL_HEIGHT * cy) as i32 + y as i32;
+
+                    self.put_raw_pixel(point(x, y), bg);
+                }
+            }
+
             if let Some(bb) = positioned.pixel_bounding_box() {
                 positioned.draw(|x, y, v| {
                     // v should be in the range 0.0 to 1.0
@@ -96,15 +106,6 @@ impl<'a> Backend for FrameBrufferDisplay<'a> {
 
                     self.put_raw_pixel(point(x, y), color);
                 });
-            } else {
-                for x in 0..GUI_CELL_WIDTH {
-                    for y in 0..GUI_CELL_HEIGHT {
-                        let x: i32 = (GUI_CELL_WIDTH * cx) as i32 + x as i32;
-                        let y: i32 = (GUI_CELL_HEIGHT * cy) as i32 + y as i32;
-
-                        self.put_raw_pixel(point(x, y), bg);
-                    }
-                }
             }
         }
 
