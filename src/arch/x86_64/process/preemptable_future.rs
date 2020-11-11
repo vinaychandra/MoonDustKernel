@@ -92,10 +92,14 @@ static mut TRAMPOLINE_1_RSP_RBP: (u64, u64) = (0, 0);
 #[thread_local]
 static mut TRAMPOLINE_1_RETURN: Poll<u8> = Poll::Pending;
 
+#[thread_local]
+static mut CAN_PREEMPT: bool = false;
+
 // Run on original stack
 #[inline(never)]
 unsafe extern "C" fn trampoline_1() {
     asm!("trampoline_1_j:"); // Used to skip the stack setting..
+    CAN_PREEMPT = false;
     {
         // Store the current stack info.
         let rsp: u64;
@@ -153,6 +157,7 @@ unsafe extern "C" fn trampoline_1() {
 unsafe extern "C" fn trampoline_2() {
     let fut = &mut *(CUR_TASK as *mut Data);
     let cx = &mut *CUR_CONTEXT;
+    CAN_PREEMPT = true;
     let result = match fut.state {
         ProcessState::NotRunning => fut.original_future.poll(cx),
         ProcessState::Yielded => {
@@ -188,6 +193,12 @@ unsafe extern "C" fn trampoline_2() {
 #[inline(never)]
 pub fn preemptive_yield() {
     unsafe {
+        if !CAN_PREEMPT {
+            warn!(target:"Preempt", "Cannot preempt a non-preemptable future");
+            return;
+        }
+        CAN_PREEMPT = false;
+
         let rsp: *const ();
         let rbp: *const ();
         asm!("
@@ -208,5 +219,6 @@ pub fn preemptive_yield() {
             lateout("rax") _, lateout("rdi") _, lateout("rsi") _, lateout("rdx") _, lateout("rcx") _,
             lateout("r8") _, lateout("r9") _, lateout("r10") _, lateout("r11") _,
         );
+        CAN_PREEMPT = true;
     }
 }

@@ -73,10 +73,25 @@ pub unsafe fn init(hpet_address: VirtAddr) {
 // TODO: Support overflow.
 fn time_from_startup() -> Duration {
     if let Some(hpet) = HPET_INSTANCE.get() {
-        let tick_in_nanos = hpet.get_period() / 1000_000;
+        let tick_in_nanos = hpet.get_period() / 1_000_000;
         let raw = hpet.get_main_counter_value();
         Duration::nanoseconds(raw as i64 * tick_in_nanos as i64)
     } else {
         Duration::zero()
     }
+}
+
+/// Can only send next immediate interrupt.
+pub fn send_interrupt_in(duration: Duration) {
+    debug_assert!(duration.num_nanoseconds().unwrap() >= 0);
+    let hpet = HPET_INSTANCE.get().unwrap();
+    let second_timer = hpet.get_timer(1).expect("Expected timer at index 1");
+    let cur_value = hpet.get_main_counter_value();
+    let tick_in_nanos = hpet.get_period() as u64 / 1_000_000;
+    let final_value = cur_value + (duration.num_nanoseconds().unwrap() as u64 / tick_in_nanos);
+
+    second_timer.set_edge_trigger();
+    second_timer.enable_interrupt();
+    second_timer.set_interrupt_route(8);
+    second_timer.set_comparator_value(final_value);
 }

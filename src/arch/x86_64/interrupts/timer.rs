@@ -16,6 +16,7 @@ pub extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: &mut Interru
 pub extern "x86-interrupt" fn hpet_timer_handler(_stack_frame: &mut InterruptStackFrame) {
     unsafe {
         let lapic = &super::super::devices::xapic::LAPIC;
+        crate::tasks::time::signal_timer();
         if let Some(lapic_val) = &*lapic {
             lapic_val.send_eoi(InterruptIndex::HpetTimer as u8);
         }

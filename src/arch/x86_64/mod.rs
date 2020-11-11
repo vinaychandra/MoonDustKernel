@@ -167,3 +167,5 @@ pub fn disable_interrupts() {
 pub fn enable_interrupts() {
     x86_64::instructions::interrupts::enable();
 }
+
+pub use devices::hpet::send_interrupt_in;

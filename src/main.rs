@@ -16,6 +16,8 @@
 #![feature(const_fn_fn_ptr_basics)]
 #![feature(future_poll_fn)]
 #![feature(const_btree_new)]
+#![feature(crate_visibility_modifier)]
+#![feature(map_first_last)]
 
 use alloc::string::String;
 use arch::{globals, process::preemptable_future::PreemptableFuture};
@@ -105,14 +107,23 @@ pub fn main_bsp() -> ! {
     info!("Run completed");
 
     let exec = PriorityExecutor::new();
-    let f = tasks::keyboard::print_keypresses();
-    let new_stack = Stack::new_kernel_stack(globals::PAGE_SIZE * 10);
-    let f2 = PreemptableFuture::new(f, new_stack);
 
-    exec.spawn(Priority::Medium, f2).detach();
+    {
+        // Load timer process
+        exec.spawn(Priority::Medium, tasks::time::process_timer_tasks())
+            .detach();
+    }
+
+    {
+        let f = tasks::keyboard::print_keypresses();
+        let new_stack = Stack::new_kernel_stack(globals::PAGE_SIZE * 10);
+        let f2 = PreemptableFuture::new(f, new_stack);
+
+        exec.spawn(Priority::Medium, f2).detach();
+    }
 
     info!(
-        "Startup duration is {:?}",
+        "Approx startup duration is {:?}",
         crate::common::time::get_uptime()
     );
 
