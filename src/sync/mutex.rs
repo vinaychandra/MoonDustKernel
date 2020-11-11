@@ -59,7 +59,7 @@ unsafe impl<T: Send> Sync for Mutex<T> {}
 
 impl<T> Mutex<T> {
     /// Creates a new Mutex.
-    pub fn new(t: T) -> Mutex<T> {
+    pub const fn new(t: T) -> Mutex<T> {
         Mutex {
             blocked: AtomicBool::new(false),
             waiting: SegQueue::new(),

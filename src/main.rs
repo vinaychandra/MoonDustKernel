@@ -15,6 +15,7 @@
 #![feature(const_mut_refs)]
 #![feature(const_fn_fn_ptr_basics)]
 #![feature(future_poll_fn)]
+#![feature(const_btree_new)]
 
 use alloc::string::String;
 use arch::{globals, process::preemptable_future::PreemptableFuture};
@@ -40,8 +41,8 @@ mod bootboot2;
 pub mod arch;
 pub mod common;
 pub mod logging;
+pub mod sync;
 pub mod tasks;
-pub mod utils;
 
 #[macro_use]
 extern crate lazy_static;

@@ -5,7 +5,7 @@ authors = ["Vinay Chandra Dommeti <moondust@vinay.vc>"]
 edition = "2018"
 
 [dependencies]
-crossbeam-queue = { version = "0.3", default-features = false, features = ["alloc"] }
+crossbeam-queue = { git = "https://github.com/crossbeam-rs/crossbeam.git", rev = "03ba964", default-features = false, features = ["alloc"] }
 conquer-once = { version = "0.2", default-features = false }
 lazy_static = { version = "1", features = ["spin_no_std"] }
 linked_list_allocator = "0.8.6"

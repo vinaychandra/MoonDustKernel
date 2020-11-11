@@ -12,7 +12,7 @@ pub struct Signal {
 }
 
 impl Signal {
-    pub fn new() -> Signal {
+    pub const fn new() -> Signal {
         Signal {
             wakers: SegQueue::new(),
         }
