@@ -1,7 +1,5 @@
 use super::{
-    allocator::physical_memory_allocator::{
-        get_physical_memory_allocator, IPhysicalMemoryAllocator,
-    },
+    allocator::physical_memory_allocator::IPhysicalMemoryAllocator,
     paging::{IMemoryMapper, MapperPermissions},
 };
 use crate::{arch::globals, common::align_down};
@@ -32,19 +30,8 @@ impl Stack {
         }
     }
 
-    pub fn new_kernel_stack_with_default_allocator(
-        size: usize,
-        mapper: &mut dyn IMemoryMapper,
-    ) -> Stack {
-        Self::new_kernel_stack(size, mapper, get_physical_memory_allocator())
-    }
-
     /// Create a new stack with the given size.
-    pub fn new_kernel_stack(
-        size: usize,
-        _mapper: &mut dyn IMemoryMapper,
-        _allocator: &dyn IPhysicalMemoryAllocator,
-    ) -> Stack {
+    pub fn new_kernel_stack(size: usize) -> Stack {
         debug_assert!(
             size % globals::PAGE_SIZE == 0,
             "Stack size should be aligned."

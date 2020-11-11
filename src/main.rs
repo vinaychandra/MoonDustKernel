@@ -21,7 +21,7 @@ use arch::{globals, process::preemptable_future::PreemptableFuture};
 use common::{
     executor::priority::{Priority, PriorityExecutor},
     graphics,
-    memory::{paging::IMemoryMapper, stack::Stack},
+    memory::stack::Stack,
     ramdisk,
 };
 use core::{
@@ -82,7 +82,7 @@ pub fn main_app() -> ! {
 
 /// Main Function on bootstrap processor.
 /// This function should not return.
-pub fn main_bsp(mapper: &mut dyn IMemoryMapper) -> ! {
+pub fn main_bsp() -> ! {
     info!("MoonDust Kernel: Main function");
 
     unsafe {
@@ -105,7 +105,7 @@ pub fn main_bsp(mapper: &mut dyn IMemoryMapper) -> ! {
 
     let exec = PriorityExecutor::new();
     let f = tasks::keyboard::print_keypresses();
-    let new_stack = Stack::new_kernel_stack_with_default_allocator(globals::PAGE_SIZE * 10, mapper);
+    let new_stack = Stack::new_kernel_stack(globals::PAGE_SIZE * 10);
     let f2 = PreemptableFuture::new(f, new_stack);
 
     exec.spawn(Priority::Medium, f2).detach();
