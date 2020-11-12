@@ -114,9 +114,9 @@ impl Stack {
             frame_allocator,
         )?;
 
-        let high_addr = unsafe { high_addr.offset(-1isize * (globals::STACK_ALIGN as isize)) };
+        let high_addr = align_down(high_addr as u64, globals::STACK_ALIGN as u64) as *mut u8;
         let result = Ok(Stack {
-            high_addr: high_addr,
+            high_addr,
             size: globals::KERNEL_STACK_BSP_SIZE,
             frame_pointer: AtomicPtr::new(high_addr),
             stack_pointer: AtomicPtr::new(high_addr),
@@ -151,10 +151,8 @@ impl Drop for Stack {
 }
 
 /// Initialize stack provider on BSP.
-pub fn initialize_stack_provider_bsp(
-    mapper: &mut dyn IMemoryMapper,
-    allocator: &dyn IPhysicalMemoryAllocator,
-) {
+pub fn initialize_stack_provider_bsp(mapper: &mut dyn IMemoryMapper) {
+    let allocator = super::allocator::physical_memory_allocator::get_physical_memory_allocator();
     let start_addr =
         globals::KERNEL_STACK_BSP + globals::KERNEL_STACK_BSP_SIZE + 2 * globals::PAGE_SIZE;
     mapper

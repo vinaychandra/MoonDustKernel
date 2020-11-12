@@ -31,8 +31,7 @@ pub static LOGGER: SerialLogger = SerialLogger;
 
 static BSP_STACK: [u8; 8192] = [0; 8192];
 
-static MEM: Mutex<Option<(Option<OffsetPageTable>, UnsafeCell<BootFrameAllocator>)>> =
-    Mutex::new(None);
+static MEM: Mutex<Option<(OffsetPageTable, UnsafeCell<BootFrameAllocator>)>> = Mutex::new(None);
 
 /// Initialization on bootstrap processor.
 pub fn initialize_architecture_bsp() -> ! {
@@ -67,8 +66,7 @@ pub fn initialize_architecture_bsp() -> ! {
         ", in(reg) level_2_addr, sym initialize_architecture_bsp2);
     }
 
-    error!("Unexpected continuation of stack switching.");
-    loop {}
+    panic!("Unexpected continuation of stack switching.");
 }
 
 /// Level 2 initializing.
@@ -92,7 +90,7 @@ pub fn initialize_architecture_bsp2() {
 
     {
         let mut a = MEM.lock();
-        *a = Some((Some(mapper), frame_allocator));
+        *a = Some((mapper, frame_allocator));
     }
 
     // Switch to a new stack
@@ -103,8 +101,7 @@ pub fn initialize_architecture_bsp2() {
 
 /// Initialize on the main stack. This uses the final stack used by the kernel.
 pub fn initialize_architecture_bsp_stack() -> ! {
-    let (mapper, mut frame_allocator) = MEM.lock().take().unwrap();
-    let mut mapper = mapper.unwrap();
+    let (mut mapper, mut frame_allocator) = MEM.lock().take().unwrap();
     {
         info!(target: "initialize_architecture_bsp", "Initializing heap");
         heap::initialize_heap(&mut mapper, &mut frame_allocator)
@@ -116,7 +113,7 @@ pub fn initialize_architecture_bsp_stack() -> ! {
         info!(target: "initialize_architecture_bsp", "Initializing physical memory provider");
         physical_memory_allocator::initialize_physical_memory_allocator(
             &mut frame_allocator.into_inner(),
-            4096,
+            globals::PAGE_SIZE,
         );
         info!(target: "initialize_architecture_bsp", "Initialized physical memory provider");
     }
@@ -141,8 +138,7 @@ pub fn initialize_architecture_bsp_stack() -> ! {
 
     {
         info!(target: "initialize_architecture_bsp", "Initialize stack provider");
-        let frame_allocator = physical_memory_allocator::get_physical_memory_allocator();
-        stack::initialize_stack_provider_bsp(&mut mapper, frame_allocator);
+        stack::initialize_stack_provider_bsp(&mut mapper);
         info!(target: "initialize_architecture_bsp", "Stack provider initialized");
     }
 

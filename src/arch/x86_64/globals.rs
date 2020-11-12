@@ -8,7 +8,7 @@ pub const PAGE_SIZE: usize = 4096;
 pub const STACK_ALIGN: usize = 128;
 
 pub const KERNEL_HEAP_START: usize = 0x_FFFF_FF80_0000_0000;
-pub const KERNEL_HEAP_SIZE_INITIAL: usize = 10 * 1024 * 1024; // 10 MB
+pub const KERNEL_HEAP_SIZE_INITIAL: usize = 30 * 1024 * 1024; // 10 MB
 pub const KERNEL_HEAP_SIZE_TOTAL: usize = 10 * 1024 * 1024 * 1024; // 10 GB
 
 pub const KERNEL_STACK_BSP: usize = 0x_FFFF_FF90_0000_0000;

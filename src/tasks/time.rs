@@ -34,7 +34,9 @@ impl PartialEq for TimerInfo {
     }
 }
 
-static TIMERS_SIGNAL: Signal = Signal::new();
+lazy_static! {
+    static ref TIMERS_SIGNAL: Arc<Signal> = Arc::new(Signal::new());
+}
 static TIMERS: Mutex<BTreeSet<TimerInfo>> = Mutex::new(BTreeSet::new());
 static INSERTED_COUNT: AtomicU64 = AtomicU64::new(0);
 
@@ -42,7 +44,7 @@ crate async fn process_timer_tasks() -> u8 {
     info!(target:"time", "Timer tasks process started");
     let skew_allowed = Duration::microseconds(50);
     loop {
-        TIMERS_SIGNAL.wait_async().await;
+        TIMERS_SIGNAL.clone().wait_async().await;
         let cur_time = get_current_time_precise();
         {
             let timers = &mut TIMERS.lock().await;
@@ -66,7 +68,7 @@ crate async fn process_timer_tasks() -> u8 {
 }
 
 crate fn signal_timer() {
-    TIMERS_SIGNAL.signal();
+    TIMERS_SIGNAL.clone().signal();
 }
 
 pub async fn delay_async(duration: Duration) {

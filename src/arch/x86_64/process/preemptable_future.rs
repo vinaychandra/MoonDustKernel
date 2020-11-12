@@ -53,10 +53,12 @@ struct Data {
 impl PreemptableFuture {
     /// Create a new preemptable task that runs the provided future on the provided stack.
     pub fn new(entry_point: impl Future<Output = u8> + 'static, stack: Stack) -> PreemptableFuture {
+        let b2: Box<dyn Future<Output = u8>> = Box::new(entry_point);
+        let p: Pin<Box<dyn Future<Output = u8>>> = b2.into();
         PreemptableFuture {
             data: Data {
                 stack,
-                original_future: Box::pin(entry_point),
+                original_future: p,
                 state: ProcessState::NotRunning,
             },
         }
@@ -159,7 +161,10 @@ unsafe extern "C" fn trampoline_2() {
     let cx = &mut *CUR_CONTEXT;
     CAN_PREEMPT = true;
     let result = match fut.state {
-        ProcessState::NotRunning => fut.original_future.poll(cx),
+        ProcessState::NotRunning => {
+            let f = fut.original_future.as_mut();
+            f.poll(cx)
+        }
         ProcessState::Yielded => {
             panic!("Trampoline2 cannot be called when process state is yielded")
         }

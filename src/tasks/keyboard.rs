@@ -67,6 +67,7 @@ impl Stream for ScancodeStream {
 
 pub async fn print_keypresses() -> u8 {
     let mut scancodes = ScancodeStream::new();
+    // info!(target:"Keyboard", "Start processing keyboard events");
 
     while let Some(scancode) = scancodes.next().await {
         info!("KeyEvent: {:?}", scancode);
