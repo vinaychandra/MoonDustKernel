@@ -29,7 +29,7 @@ use x86_64::{registers::control::EferFlags, structures::paging::OffsetPageTable,
 /// Architecture level logs for x86_64.
 pub static LOGGER: SerialLogger = SerialLogger;
 
-static BSP_STACK: [u8; 8192] = [0; 8192];
+static BSP_STACK: [u8; 4096 * 4] = [0; 4096 * 4];
 
 static MEM: Mutex<Option<(OffsetPageTable, UnsafeCell<BootFrameAllocator>)>> = Mutex::new(None);
 

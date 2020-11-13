@@ -10,7 +10,7 @@ use core::{
     task::{Context, Poll},
 };
 
-use futures_lite::{Future, FutureExt};
+use futures_lite::Future;
 
 use crate::common::memory::stack::Stack;
 
@@ -53,12 +53,10 @@ struct Data {
 impl PreemptableFuture {
     /// Create a new preemptable task that runs the provided future on the provided stack.
     pub fn new(entry_point: impl Future<Output = u8> + 'static, stack: Stack) -> PreemptableFuture {
-        let b2: Box<dyn Future<Output = u8>> = Box::new(entry_point);
-        let p: Pin<Box<dyn Future<Output = u8>>> = b2.into();
         PreemptableFuture {
             data: Data {
                 stack,
-                original_future: p,
+                original_future: Box::pin(entry_point),
                 state: ProcessState::NotRunning,
             },
         }
