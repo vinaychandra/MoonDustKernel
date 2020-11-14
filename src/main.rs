@@ -184,7 +184,7 @@ fn load_graphics() -> Result<(), String> {
 
     // Initialize GUI logging.
     KERNEL_LOGGER.enable_gui_logger();
-    info!("Project Thunderstorm");
+    info!("Project MoonDust");
     info!("Loading services. Please wait.");
     KERNEL_LOGGER.flush();
 

@@ -1,5 +1,5 @@
 //! Framebuffer for the OS.
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, vec::Vec};
 use num_traits::float::Float;
 use rusttype::{point, Point};
 use tui::{backend::Backend, layout::Rect, style::Color};
@@ -15,6 +15,10 @@ pub struct FrameBrufferDisplay<'a> {
     pub cursor: (u16, u16),
     font_cache: FontCache<'a>,
     pixels_x: u16,
+    bitmap_cache: BTreeMap<
+        (char, (u8, u8, u8), (u8, u8, u8)),
+        [(u8, u8, u8); GUI_CELL_HEIGHT as usize * GUI_CELL_WIDTH as usize],
+    >,
 }
 
 impl<'a> FrameBrufferDisplay<'a> {
@@ -36,6 +40,7 @@ impl<'a> FrameBrufferDisplay<'a> {
             cursor: (0, 0),
             font_cache: FontCache::new(),
             pixels_x,
+            bitmap_cache: BTreeMap::new(),
         }
     }
 
@@ -65,47 +70,66 @@ impl<'a> Backend for FrameBrufferDisplay<'a> {
         let default_bg = convert_color(Color::Black).unwrap();
 
         for (cx, cy, cell) in content {
-            let positioned = {
-                let glyph = self.font_cache.regular_font.glyph(
-                    cell.symbol
-                        .chars()
-                        .into_iter()
-                        .next()
-                        .expect("Expected atleast one char"),
-                );
-                let scaled = glyph.scaled(self.font_cache.scale);
-                scaled.positioned(self.font_cache.regular_offset)
-            };
-
             let fg = convert_color(cell.fg).unwrap_or(default_fg);
             let bg = convert_color(cell.bg).unwrap_or(default_bg);
 
-            // Clear the cell
-            for x in 0..GUI_CELL_WIDTH {
-                for y in 0..GUI_CELL_HEIGHT {
-                    let x: i32 = (GUI_CELL_WIDTH * cx) as i32 + x as i32;
-                    let y: i32 = (GUI_CELL_HEIGHT * cy) as i32 + y as i32;
-
-                    self.put_raw_pixel(point(x, y), bg);
+            let character = cell
+                .symbol
+                .chars()
+                .into_iter()
+                .next()
+                .expect("Expected atleast one char");
+            let bitmap = self.bitmap_cache.get(&(character, fg, bg)).map(|f| *f);
+            if let Some(v) = bitmap {
+                // Use this v.
+                for x in 0..GUI_CELL_WIDTH {
+                    for y in 0..GUI_CELL_HEIGHT {
+                        let fx = (GUI_CELL_WIDTH * cx) as i32 + x as i32;
+                        let fy = (GUI_CELL_HEIGHT * cy) as i32 + y as i32;
+                        let c = v[(x + y * GUI_CELL_WIDTH) as usize];
+                        self.put_raw_pixel(point(fx, fy), c);
+                    }
                 }
-            }
+            } else {
+                let positioned = {
+                    let glyph = self.font_cache.regular_font.glyph(character);
+                    let scaled = glyph.scaled(self.font_cache.scale);
+                    scaled.positioned(self.font_cache.regular_offset)
+                };
 
-            if let Some(bb) = positioned.pixel_bounding_box() {
-                positioned.draw(|x, y, v| {
-                    // v should be in the range 0.0 to 1.0
-                    let r = (v * fg.0 as f32) + (1.0 - v) * (bg.0 as f32);
-                    let g = (v * fg.1 as f32) + (1.0 - v) * (bg.1 as f32);
-                    let b = (v * fg.2 as f32) + (1.0 - v) * (bg.2 as f32);
-                    let color = (r.ceil() as u8, g.ceil() as u8, b.ceil() as u8);
+                // Clear the cell
+                for x in 0..GUI_CELL_WIDTH {
+                    for y in 0..GUI_CELL_HEIGHT {
+                        let x: i32 = (GUI_CELL_WIDTH * cx) as i32 + x as i32;
+                        let y: i32 = (GUI_CELL_HEIGHT * cy) as i32 + y as i32;
 
-                    let x = x as i32 + bb.min.x;
-                    let y = y as i32 + bb.min.y;
+                        self.put_raw_pixel(point(x, y), bg);
+                    }
+                }
 
-                    let x = (GUI_CELL_WIDTH * cx) as i32 + x;
-                    let y = (GUI_CELL_HEIGHT * cy) as i32 + y;
+                let mut final_array =
+                    [(0, 0, 0); GUI_CELL_HEIGHT as usize * GUI_CELL_WIDTH as usize];
 
-                    self.put_raw_pixel(point(x, y), color);
-                });
+                if let Some(bb) = positioned.pixel_bounding_box() {
+                    positioned.draw(|x, y, v| {
+                        // v should be in the range 0.0 to 1.0
+                        let r = (v * fg.0 as f32) + (1.0 - v) * (bg.0 as f32);
+                        let g = (v * fg.1 as f32) + (1.0 - v) * (bg.1 as f32);
+                        let b = (v * fg.2 as f32) + (1.0 - v) * (bg.2 as f32);
+                        let color = (r.ceil() as u8, g.ceil() as u8, b.ceil() as u8);
+
+                        let x = x as i32 + bb.min.x;
+                        let y = y as i32 + bb.min.y;
+
+                        final_array[(x + GUI_CELL_WIDTH as i32 * y) as usize] = color;
+                        self.bitmap_cache.insert((character, fg, bg), final_array);
+
+                        let x = (GUI_CELL_WIDTH * cx) as i32 + x;
+                        let y = (GUI_CELL_HEIGHT * cy) as i32 + y;
+
+                        self.put_raw_pixel(point(x, y), color);
+                    });
+                }
             }
         }
 

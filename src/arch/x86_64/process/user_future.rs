@@ -5,6 +5,7 @@ use core::{
     task::{Context, Poll},
 };
 
+use futures_lite::Future;
 use x86_64::VirtAddr;
 
 use crate::common::memory::stack::Stack;
@@ -40,6 +41,20 @@ impl UserFuture {
                 kernel_stack,
                 state: UserProcessState::NotStarted(entry_point),
             },
+        }
+    }
+}
+
+impl Future for UserFuture {
+    type Output = u8;
+
+    fn poll(mut self: core::pin::Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        unsafe {
+            CUR_TASK = &mut self.data as *mut Data;
+            CUR_CONTEXT = cx as *mut Context<'_> as *const () as *mut Context<'static>;
+
+            asm!("call {}", sym trampoline_1);
+            TRAMPOLINE_1_RETURN
         }
     }
 }
@@ -86,7 +101,7 @@ unsafe extern "C" fn trampoline_1() {
             TRAMPOLINE_1_RETURN = Poll::Pending;
             return;
         }
-        UserProcessState::ResumeFrom(ep, id) => {
+        UserProcessState::ResumeFrom(ep, _id) => {
             asm!("
             mov rcx, {0}
             mov rax, 0
@@ -115,7 +130,7 @@ unsafe fn syscall_entry_fn_2() {
     let info: &'static SyscallInfo = &*info;
 
     // We retrieved all the syscall data. Process it.
-    let info2: SyscallInfo = *info;
+    let _info2: SyscallInfo = *info;
 
     // After scheduling that, we yield this
     (*CUR_TASK).state = UserProcessState::YieldedWithSyscall(stored_ip, SyscallId(1));
