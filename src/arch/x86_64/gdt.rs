@@ -1,4 +1,3 @@
-use crate::common::syscall;
 use x86_64::{
     instructions::{
         segmentation::{load_ss, set_cs},
@@ -87,10 +86,11 @@ pub fn init() {
         set_cs(SELECTORS.kernel_code_selector);
         load_ss(SELECTORS.kernel_data_selector);
         load_tss(SELECTORS.tss_selector);
+        setup_usermode_gdt();
     }
 }
 
-pub fn setup_usermode() {
+pub fn setup_usermode_gdt() {
     unsafe {
         x86_64::registers::model_specific::Star::write(
             SELECTORS.user_code_selector,
@@ -100,7 +100,8 @@ pub fn setup_usermode() {
         )
         .unwrap();
     }
+}
 
-    let syscall_entry = syscall::syscall_entry as u64;
-    x86_64::registers::model_specific::LStar::write(VirtAddr::new(syscall_entry));
+pub unsafe fn set_tss_esp0(stack: VirtAddr) {
+    TSS.privilege_stack_table[0] = stack;
 }

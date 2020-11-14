@@ -8,6 +8,7 @@ use alloc::{sync::Arc, task::Wake};
 use futures_lite::{pin, Future};
 
 pub mod preemptable_future;
+pub mod user_future;
 
 static SHOULD_WAKE: AtomicBool = AtomicBool::new(false);
 
