@@ -32,9 +32,10 @@ target/$(PLATFORM)-moondust/debug/moondust-kernel: $(KERNEL_SOURCES)
 
 # create an initial ram disk image with the kernel inside
 target/disk-$(PLATFORM).img: target/$(PLATFORM)-moondust/debug/moondust-kernel
-	@mkdir ./target/initrd ./target/initrd/sys ./target/initrd/sys 2>/dev/null | true
+	@mkdir ./target/initrd ./target/initrd/sys ./target/initrd/sys ./target/initrd/userspace 2>/dev/null | true
 	cp ./$< ./target/initrd/sys/core
 	cd ./target/initrd/sys; echo -e "screen=1280x768\nkernel=sys/core\n" >config || true;
+	cp $(USERSPACE:./userspace/%=./target/$(PLATFORM)-moondust-user/debug/%) ./target/initrd/userspace/
 	./others/bootboot/mkbootimg-$(HOST) ./others/bootboot/mkimgconfig.json $@
 
 check-image: target/$(PLATFORM)-moondust/debug/moondust-kernel

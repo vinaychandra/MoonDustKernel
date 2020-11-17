@@ -23,8 +23,8 @@ impl UnifiedLogger {
     pub async fn process_gui_logs(&self) -> u8 {
         info!("Starting GUI Log flushing");
         loop {
-            self.signal.wait_async().await;
             self.flush();
+            self.signal.wait_async().await;
         }
     }
 }

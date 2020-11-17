@@ -22,7 +22,6 @@
 
 use alloc::string::String;
 use arch::{globals, process::preemptable_future::PreemptableFuture};
-use chrono::Duration;
 use common::{
     executor::priority::{Priority, PriorityExecutor},
     graphics,
@@ -91,15 +90,6 @@ pub fn main_app() -> ! {
 pub fn main_bsp() -> ! {
     info!("MoonDust Kernel: Main function");
 
-    unsafe {
-        let ramdisk = ramdisk::ustar::UStarArchive::new(
-            bootboot::bootboot.initrd_ptr as *const u8,
-            bootboot::bootboot.initrd_size as usize,
-        );
-
-        info!(target: "main", "initrd image is {}", ramdisk);
-    }
-
     load_graphics().unwrap();
 
     // Setup interrupts
@@ -130,18 +120,6 @@ pub fn main_bsp() -> ! {
         exec.spawn(Priority::Medium, f2).detach();
     }
 
-    {
-        exec.spawn(
-            Priority::Medium,
-            (async || {
-                info!("Before timer");
-                tasks::time::delay_async(Duration::milliseconds(10)).await;
-                info!("After timer");
-            })(),
-        )
-        .detach();
-    }
-
     info!(
         "Approx startup duration is {:?}",
         crate::common::time::get_uptime()
@@ -152,7 +130,21 @@ pub fn main_bsp() -> ! {
         crate::common::time::get_current_time()
     );
 
+    unsafe {
+        let initrd_ptr = bootboot::bootboot.initrd_ptr + globals::MEM_MAP_LOCATION;
+        let ramdisk = ramdisk::ustar::UStarArchive::new(
+            initrd_ptr as *const u8,
+            bootboot::bootboot.initrd_size as usize,
+        );
+
+        info!(target: "main", "initrd image is {}", ramdisk);
+
+        // let file_name = "./userspace/sigma_space";
+        // let file = ramdisk.lookup(file_name).expect("File not found");
+    }
+
     crate::arch::process::block_on(exec.run());
+    info!("Main run complete");
     arch::hlt_loop();
 }
 

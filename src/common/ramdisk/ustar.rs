@@ -147,6 +147,7 @@ impl Iterator for EntryIterators {
         while alloc::str::from_utf8(&self.file[self.index].magic)
             .unwrap()
             .trim_matches(char::from(0))
+            .trim()
             .eq("ustar")
         {
             let entry = &self.file[self.index];
