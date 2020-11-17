@@ -3,7 +3,7 @@ use self::{
     timer::{hpet_timer_handler, timer_interrupt_handler},
 };
 
-use super::gdt;
+use super::{gdt, globals};
 use acpi::{AcpiTables, HpetInfo, InterruptModel};
 use spin::Mutex;
 use x86_64::{
@@ -93,7 +93,9 @@ pub unsafe fn load_interrupts() -> Result<(), &'static str> {
     // Setup HPET
     info!(target:"interrupts", "Setting up HPET");
     let hpet_info = HpetInfo::new(&acpi_tables).expect("Kernel requires HPET");
-    super::devices::hpet::init(VirtAddr::new(hpet_info.base_address as u64));
+    super::devices::hpet::init(VirtAddr::new(
+        hpet_info.base_address as u64 + globals::MEM_MAP_LOCATION,
+    ));
     info!(target:"interrupts", "HPET ready");
 
     // Setup CMOS

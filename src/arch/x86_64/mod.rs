@@ -15,15 +15,19 @@ use crate::{
         memory::{
             allocator::{boot_frame_allocator::BootFrameAllocator, physical_memory_allocator},
             heap,
+            paging::IMemoryMapper,
             stack::{self, Stack},
         },
     },
 };
+use alloc::boxed::Box;
 use core::cell::UnsafeCell;
 use log::LevelFilter;
 use serial::SerialLogger;
 use spin::Mutex;
-use x86_64::{registers::control::EferFlags, structures::paging::OffsetPageTable, VirtAddr};
+use x86_64::{
+    registers::control::EferFlags, structures::paging::OffsetPageTable, PhysAddr, VirtAddr,
+};
 
 /// Logger that uses serial to output logs.
 /// Architecture level logs for x86_64.
@@ -142,6 +146,12 @@ pub fn initialize_architecture_bsp_stack() -> ! {
         info!(target: "initialize_architecture_bsp", "Stack provider initialized");
     }
 
+    let final_pt = tables::create_new_kernel_only_table_from_current();
+    let final_pt_vaddr = Box::into_raw(final_pt) as u64;
+    let final_pt_paddr = mapper.virt_to_phys(final_pt_vaddr as *const u8).unwrap();
+    info!(target: "initialize_architecture_bsp", "Memory map switching");
+    paging::activate_page_table(PhysAddr::new(final_pt_paddr as u64));
+    info!(target: "initialize_architecture_bsp", "Memory map switched");
     crate::main_bsp();
 }
 
@@ -165,3 +175,5 @@ pub fn enable_interrupts() {
 }
 
 pub use devices::hpet::send_interrupt_in;
+
+use self::memory::{paging, tables};
