@@ -21,7 +21,10 @@
 #![feature(async_closure)]
 
 use alloc::string::String;
-use arch::{globals, process::preemptable_future::PreemptableFuture};
+use arch::{
+    globals,
+    process::{preemptable_future::PreemptableFuture, user_future::UserFuture},
+};
 use common::{
     executor::priority::{Priority, PriorityExecutor},
     graphics,
@@ -147,6 +150,12 @@ pub fn main_bsp(mut mapper: impl IMemoryMapper) -> ! {
         let mut loader = DefaultElfLoader::new(0x0, &mut mapper);
         binary.load(&mut loader).expect("Binary loading failed");
         info!(target: "main", "Sigma space loaded");
+
+        let entry_point = binary.entry_point() as *const ();
+        let user_stack = Stack::new_user_stack(1 * globals::PAGE_SIZE, &mut mapper);
+        let kernel_stack = Stack::new_kernel_stack(3 * globals::PAGE_SIZE);
+        let future = UserFuture::new(entry_point, user_stack, kernel_stack);
+        exec.spawn(Priority::Medium, future).detach();
     }
 
     crate::arch::process::block_on(exec.run());
