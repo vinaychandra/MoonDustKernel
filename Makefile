@@ -31,7 +31,7 @@ target/$(PLATFORM)-moondust/debug/moondust-kernel: $(KERNEL_SOURCES)
 	cargo build --target ./triplets/$(PLATFORM)-moondust.json -p moondust-kernel
 
 # create an initial ram disk image with the kernel inside
-target/disk-$(PLATFORM).img: target/$(PLATFORM)-moondust/debug/moondust-kernel
+target/disk-$(PLATFORM).img: target/$(PLATFORM)-moondust/debug/moondust-kernel userspace
 	@mkdir ./target/initrd ./target/initrd/sys ./target/initrd/sys ./target/initrd/userspace 2>/dev/null | true
 	cp ./$< ./target/initrd/sys/core
 	cd ./target/initrd/sys; echo -e "screen=1280x768\nkernel=sys/core\n" >config || true;

@@ -113,7 +113,7 @@ unsafe extern "C" fn trampoline_1() {
             mov rsp, {1}
             mov rbp, {2}
             ", in(reg) ep, in(reg) rsp, in(reg) rbp);
-            asm!("sysret");
+            asm!("sysretq");
         }
     }
 }
