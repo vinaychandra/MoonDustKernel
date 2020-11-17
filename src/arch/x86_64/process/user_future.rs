@@ -6,6 +6,7 @@ use core::{
 };
 
 use futures_lite::Future;
+use mlibc::syscall::SyscallInfo;
 use x86_64::VirtAddr;
 
 use crate::common::memory::stack::Stack;
@@ -184,11 +185,4 @@ unsafe fn syscall_entry_fn_3() {
         jmp uf_trampoline_1_j",
         in(reg) rsp, in(reg) rbp
     );
-}
-
-#[derive(Debug, Copy, Clone)]
-#[repr(C)]
-pub enum SyscallInfo {
-    Exit,
-    Test { val: u8 },
 }

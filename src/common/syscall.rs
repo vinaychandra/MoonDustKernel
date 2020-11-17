@@ -1,6 +1,6 @@
 use core::task::Waker;
 
-use crate::arch::process::user_future::SyscallInfo;
+use mlibc::syscall::SyscallInfo;
 
 pub fn process_syscall(info: SyscallInfo, waker: Waker) {
     match info {

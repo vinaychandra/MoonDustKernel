@@ -3,3 +3,6 @@ name = "sigma_space"
 version = "0.0.1"
 authors = ["Vinay Chandra Dommeti <moondust@vinay.vc>"]
 edition = "2018"
+
+[dependencies]
+mlibc = { path ="../../others/mlibc" }

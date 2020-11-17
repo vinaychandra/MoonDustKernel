@@ -5,6 +5,8 @@
 #[cfg(not(test))]
 use core::panic::PanicInfo;
 
+use mlibc::syscall::SyscallInfo;
+
 #[no_mangle] // don't mangle the name of this function
 pub fn _start() {
     let a = SyscallInfo::Test { val: 88 };
@@ -15,13 +17,6 @@ pub fn _start() {
 
     let a = SyscallInfo::Exit;
     call_syscall(a);
-}
-
-#[derive(Debug, Copy, Clone)]
-#[repr(C)]
-pub enum SyscallInfo {
-    Exit,
-    Test { val: u8 },
 }
 
 /// This function is called on panic.

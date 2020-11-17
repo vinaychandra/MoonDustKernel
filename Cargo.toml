@@ -42,11 +42,14 @@ rand_chacha = {version = "0.2.2", default-features = false}
 # Keyboard
 pc-keyboard = "0.5.1"
 
+# Common
+mlibc = { path="others/mlibc" }
+
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 uart_16550 = "0.2.10"
 x86_64 = "0.12.2"
 cmos = "0.1.2"
 
 [workspace]
-members = [ "userspace/sigma_space" ]
+members = [ "userspace/sigma_space", "others/mlibc" ]
 default-members = [ ]
