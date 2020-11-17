@@ -26,7 +26,9 @@ use log::LevelFilter;
 use serial::SerialLogger;
 use spin::Mutex;
 use x86_64::{
-    registers::control::EferFlags, structures::paging::OffsetPageTable, PhysAddr, VirtAddr,
+    registers::control::EferFlags,
+    structures::paging::{OffsetPageTable, PageTable},
+    PhysAddr, VirtAddr,
 };
 
 /// Logger that uses serial to output logs.
@@ -146,13 +148,15 @@ pub fn initialize_architecture_bsp_stack() -> ! {
         info!(target: "initialize_architecture_bsp", "Stack provider initialized");
     }
 
+    info!(target: "initialize_architecture_bsp", "PageTable switching");
     let final_pt = tables::create_new_kernel_only_table_from_current();
-    let final_pt_vaddr = Box::into_raw(final_pt) as u64;
+    let final_pt_vaddr = Box::into_raw(final_pt);
     let final_pt_paddr = mapper.virt_to_phys(final_pt_vaddr as *const u8).unwrap();
-    info!(target: "initialize_architecture_bsp", "Memory map switching");
     paging::activate_page_table(PhysAddr::new(final_pt_paddr as u64));
-    info!(target: "initialize_architecture_bsp", "Memory map switched");
-    crate::main_bsp();
+    info!(target: "initialize_architecture_bsp", "PageTable switched");
+
+    let final_offset_pt = unsafe { new_offset_table(final_pt_vaddr) };
+    crate::main_bsp(final_offset_pt);
 }
 
 /// Halt the CPU until next interrupt.
@@ -177,3 +181,8 @@ pub fn enable_interrupts() {
 pub use devices::hpet::send_interrupt_in;
 
 use self::memory::{paging, tables};
+
+pub unsafe fn new_offset_table(page_table: *mut PageTable) -> OffsetPageTable<'static> {
+    let page_table_borrow = page_table.as_mut().unwrap();
+    OffsetPageTable::new(page_table_borrow, VirtAddr::new(globals::MEM_MAP_LOCATION))
+}

@@ -25,13 +25,15 @@ use arch::{globals, process::preemptable_future::PreemptableFuture};
 use common::{
     executor::priority::{Priority, PriorityExecutor},
     graphics,
-    memory::stack::Stack,
+    memory::{paging::IMemoryMapper, stack::Stack},
     ramdisk,
+    ramdisk::elf_loader::DefaultElfLoader,
 };
 use core::{
     panic::PanicInfo,
     sync::atomic::{AtomicU8, Ordering},
 };
+use elfloader::ElfBinary;
 use log::Log;
 use logging::UnifiedLogger;
 
@@ -87,7 +89,7 @@ pub fn main_app() -> ! {
 
 /// Main Function on bootstrap processor.
 /// This function should not return.
-pub fn main_bsp() -> ! {
+pub fn main_bsp(mut mapper: impl IMemoryMapper) -> ! {
     info!("MoonDust Kernel: Main function");
 
     load_graphics().unwrap();
@@ -139,8 +141,12 @@ pub fn main_bsp() -> ! {
 
         info!(target: "main", "initrd image is {}", ramdisk);
 
-        // let file_name = "./userspace/sigma_space";
-        // let file = ramdisk.lookup(file_name).expect("File not found");
+        let file_name = "./userspace/sigma_space";
+        let file = ramdisk.lookup(file_name).expect("File not found");
+        let binary = ElfBinary::new("sigma_space", file).expect("Cannot read the binary");
+        let mut loader = DefaultElfLoader::new(0x0, &mut mapper);
+        binary.load(&mut loader).expect("Binary loading failed");
+        info!(target: "main", "Sigma space loaded");
     }
 
     crate::arch::process::block_on(exec.run());
