@@ -36,6 +36,7 @@ SECTIONS
     .tdata : {
         __tdata_start = .;
         *(.tdata*)
+        . = ALIGN(4096);
         __tdata_end = .;
     } :boot :tls
 

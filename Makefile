@@ -48,4 +48,5 @@ efi-wait: target/disk-$(PLATFORM).img
 	qemu-system-x86_64 -bios $(OVMF) -m 128 -drive file=./target/disk-x86_64.img,format=raw -serial stdio -s -S
 
 clean:
+	rm -rf ./target
 	cargo clean

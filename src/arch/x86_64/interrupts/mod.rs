@@ -58,6 +58,7 @@ pub fn initialize(phys_mem_offset: VirtAddr) {
         IDT[InterruptIndex::HpetTimer.as_usize()].set_handler_fn(hpet_timer_handler);
 
         IDT.general_protection_fault.set_handler_fn(unhandled_fault);
+        IDT.invalid_opcode.set_handler_fn(unhandled_fault_noerr);
 
         IDT.load();
     }
