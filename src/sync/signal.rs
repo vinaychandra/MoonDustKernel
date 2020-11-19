@@ -1,5 +1,6 @@
 use core::{
     pin::Pin,
+    sync::atomic::{AtomicU64, Ordering},
     task::{Context, Poll, Waker},
 };
 
@@ -9,12 +10,14 @@ use futures_lite::Future;
 /// A signal for all waiting tasks.
 pub struct Signal {
     wakers: SegQueue<Waker>,
+    generation_count: AtomicU64,
 }
 
 impl Signal {
     pub const fn new() -> Signal {
         Signal {
             wakers: SegQueue::new(),
+            generation_count: AtomicU64::new(0),
         }
     }
 
@@ -23,13 +26,14 @@ impl Signal {
     pub async fn wait_async(&self) -> () {
         SignalFuture {
             signal: self,
-            first_time: true,
+            this_gen_count: self.generation_count.load(Ordering::SeqCst),
         }
         .await
     }
 
     /// Signal all the waiting threads.
     pub fn signal(&self) {
+        self.generation_count.fetch_add(1, Ordering::SeqCst);
         while let Some(v) = self.wakers.pop() {
             v.wake();
         }
@@ -38,15 +42,14 @@ impl Signal {
 
 struct SignalFuture<'a> {
     signal: &'a Signal,
-    first_time: bool,
+    this_gen_count: u64,
 }
 
 impl<'a> Future for SignalFuture<'a> {
     type Output = ();
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if self.first_time {
-            self.first_time = false;
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        if self.this_gen_count >= self.signal.generation_count.load(Ordering::SeqCst) {
             self.signal.wakers.push(cx.waker().clone());
             return Poll::Pending;
         } else {
