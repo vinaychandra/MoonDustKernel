@@ -36,8 +36,8 @@ futures-lite = { version="1.11.2", default-features = false, features = ["alloc"
 futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
 
 # Random
-rand = {version = "0.7.3", default-features = false}
-rand_chacha = {version = "0.2.2", default-features = false}
+rand = {version = "0.8.3", default-features = false}
+rand_chacha = {version = "0.3.0", default-features = false}
 
 # Keyboard
 pc-keyboard = "0.5.1"
