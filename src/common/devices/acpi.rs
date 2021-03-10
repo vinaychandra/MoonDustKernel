@@ -11,6 +11,8 @@ pub struct MemoryHandler {
 }
 
 impl MemoryHandler {
+    /// Create a memory handler for ACPI that works when memory is mapped
+    /// at the [`phys_mem_offset`]
     pub const fn new(phys_mem_offset: usize) -> MemoryHandler {
         MemoryHandler { phys_mem_offset }
     }

@@ -18,7 +18,10 @@ impl LApic {
     /// memory mapped structures are located.
     /// `read_base` function can be sued to retrieve the physical
     /// address of this address.
-    pub fn new(base_virtual_address: VirtAddr) -> LApic {
+    /// # Safety
+    /// This function is unsafe because we have to guarantee the
+    /// location of LAPIC.
+    pub unsafe fn new(base_virtual_address: VirtAddr) -> LApic {
         LApic {
             base_virt_address: base_virtual_address.as_u64(),
         }
@@ -26,8 +29,8 @@ impl LApic {
 
     /// Get the LApic Base address.
     /// This function reads from `IA32_APIC_BASE`.
-    pub unsafe fn read_base() -> PhysAddr {
-        PhysAddr::new(Msr::new(IA32_APIC_BASE).read() & 0xFFFFFF000 as u64)
+    pub fn read_base() -> PhysAddr {
+        unsafe { PhysAddr::new(Msr::new(IA32_APIC_BASE).read() & 0xFFFFFF000 as u64) }
     }
 
     fn mem_read(virtual_location: u64) -> u32 {

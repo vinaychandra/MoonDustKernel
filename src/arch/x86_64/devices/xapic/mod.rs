@@ -13,7 +13,7 @@ pub fn initialize_apic(phys_mem_offset: VirtAddr, ioapic_addr: u64) {
         "Initialize APIC: Offset {:x} IOApic Addr: {:x} LapicAddr: {:x}",
         phys_mem_offset.as_u64(),
         ioapic_addr,
-        unsafe { LApic::read_base().as_u64() }
+        LApic::read_base().as_u64()
     );
     let lapic_instance = unsafe {
         LApic::new(VirtAddr::new(

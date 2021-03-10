@@ -16,6 +16,7 @@ use core::ptr;
 ///         Generally corresponds to the combined length of the `.tdata` and `.tbss` sections.
 /// # Returns
 /// Virtual address of the target pointer. The data will be of size `total_size`
+#[cfg(target_arch = "x86_64")]
 pub unsafe fn load_tls_data(
     start_addr: *const u8,
     tdata_size: usize,

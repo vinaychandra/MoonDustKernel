@@ -12,12 +12,15 @@ use x86_64::{
 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 
+/// Per-CPU TSS
 #[thread_local]
 static mut TSS: TaskStateSegment = TaskStateSegment::new();
 
+/// Per-CPU GDT
 #[thread_local]
 static mut GDT: GlobalDescriptorTable = GlobalDescriptorTable::new();
 
+/// Per-CPU Segment selectors
 #[thread_local]
 static mut SELECTORS: SegmentSelectors = SegmentSelectors::new();
 
