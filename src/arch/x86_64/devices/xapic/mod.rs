@@ -26,6 +26,7 @@ pub fn initialize_apic(phys_mem_offset: VirtAddr, ioapic_addr: u64) {
 
     // Enable local APIC
     lapic_instance.enable();
+    // lapic_instance.initialize_apic_timer(2);
 
     // Get the APIC ID
     let apic_id = lapic_instance.read(lapic::APIC_ID_REGISTER);
