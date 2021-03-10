@@ -137,7 +137,7 @@ unsafe extern "C" fn syscall_entry_fn(
         mov rsi, rsp
         mov rdx, rbp
         jmp {0}
-    ", sym syscall_entry_fn_2);
+    ", sym syscall_entry_fn_2, options(noreturn));
 
     // (*CUR_TASK).kernel_stack.switch_to();
 }

@@ -167,7 +167,7 @@ pub fn hlt_loop() -> ! {
 }
 
 pub fn enable_interrupts_and_halt() {
-    x86_64::instructions::interrupts::enable_interrupts_and_hlt();
+    x86_64::instructions::interrupts::enable_and_hlt();
 }
 
 pub fn disable_interrupts() {

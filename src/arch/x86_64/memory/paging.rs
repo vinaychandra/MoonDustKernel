@@ -6,8 +6,8 @@ use core::alloc::Layout;
 use x86_64::{
     registers::control::Cr3,
     structures::paging::{
-        page::PageRange, FrameAllocator, Mapper, MapperAllSizes, OffsetPageTable, Page, PageTable,
-        PageTableFlags, PhysFrame, Size4KiB,
+        page::PageRange, FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags,
+        PhysFrame, Size4KiB, Translate,
     },
     PhysAddr, VirtAddr,
 };

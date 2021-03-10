@@ -30,7 +30,7 @@ pub fn block_on<T>(task: impl Future<Output = T>) -> T {
             continue;
         } else {
             trace!(target:"block_on", "Sleeping");
-            x86_64::instructions::interrupts::enable_interrupts_and_hlt();
+            x86_64::instructions::interrupts::enable_and_hlt();
         }
     }
 }

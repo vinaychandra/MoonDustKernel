@@ -47,7 +47,7 @@ mlibc = { path="others/mlibc" }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 uart_16550 = "0.2.10"
-x86_64 = "0.12.2"
+x86_64 = "0.13.2"
 cmos = "0.1.2"
 
 [workspace]

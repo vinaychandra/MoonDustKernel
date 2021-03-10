@@ -7,11 +7,9 @@
 #![feature(alloc_error_handler)]
 #![feature(asm)]
 #![feature(const_fn)]
-#![feature(const_in_array_repeat_expressions)]
 #![feature(naked_functions)]
 #![feature(new_uninit)]
 #![feature(thread_local)]
-#![feature(wake_trait)]
 #![feature(const_mut_refs)]
 #![feature(const_fn_fn_ptr_basics)]
 #![feature(future_poll_fn)]
@@ -19,6 +17,7 @@
 #![feature(crate_visibility_modifier)]
 #![feature(map_first_last)]
 #![feature(async_closure)]
+#![feature(result_into_ok_or_err)]
 
 use alloc::string::String;
 use arch::{
