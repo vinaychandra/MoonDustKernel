@@ -7,7 +7,7 @@ A simple kernel aimed at learning Operating Systems written in Rust.
 - Single processor kernel, preparing for multi processor
 - Text based UI using [tui-rs](https://github.com/vinaychandra/tui-rs)
 - CPU Local storage using `#[thread_local]` and ELF sections
-- Cooperative scheduling using rust's async patterns (Uses [exector](https://github.com/smol-rs/async-executor))
+- Cooperative scheduling using rust's async patterns (Uses [executor](https://github.com/smol-rs/async-executor))
 
 ## More
 
