@@ -10,7 +10,6 @@ lazy_static! {
     };
 }
 
-/// Function to print into the debug serial output.
 #[doc(hidden)]
 pub fn _print(args: ::core::fmt::Arguments) {
     use core::fmt::Write;

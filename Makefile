@@ -22,7 +22,7 @@ src/bootboot.rs: others/bootboot/bootloader.h others/bootboot/bootboot.h
 	echo "pub mod custom_ctypes { pub type c_int = i64; pub type c_uchar = u64; }" >> $@
 
 userspace:
-	cargo build --target ./triplets/$(PLATFORM)-moondust-user.json --workspace --exclude moondust-kernel
+	#cargo build --target ./triplets/$(PLATFORM)-moondust-user.json --workspace --exclude moondust-kernel
 
 # Kernel build
 target/$(PLATFORM)-moondust/debug/moondust-kernel: $(KERNEL_SOURCES)
@@ -35,7 +35,7 @@ target/disk-$(PLATFORM).img: target/$(PLATFORM)-moondust/debug/moondust-kernel u
 	@mkdir ./target/initrd ./target/initrd/sys ./target/initrd/sys ./target/initrd/userspace 2>/dev/null | true
 	cp ./$< ./target/initrd/sys/core
 	cd ./target/initrd/sys; echo -e "screen=1280x768\nkernel=sys/core\n" >config || true;
-	cp $(USERSPACE:./userspace/%=./target/$(PLATFORM)-moondust-user/debug/%) ./target/initrd/userspace/
+	#cp $(USERSPACE:./userspace/%=./target/$(PLATFORM)-moondust-user/debug/%) ./target/initrd/userspace/
 	./others/bootboot/mkbootimg-$(HOST) ./others/bootboot/mkimgconfig.json $@
 
 check-image: target/$(PLATFORM)-moondust/debug/moondust-kernel
