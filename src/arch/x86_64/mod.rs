@@ -1,24 +1,21 @@
+pub mod bootstrap;
+pub mod gdt;
+pub mod globals;
+pub mod memory;
 pub mod serial;
 
-use core::alloc::GlobalAlloc;
+use moondust_utils::buddy_system_allocator;
 
 use self::serial::SerialLogger;
+use crate::common::memory::fixed_size_block;
 
 /// Logger that uses serial to output logs.
 /// Architecture level logs for x86_64.
 pub static LOGGER: SerialLogger = SerialLogger;
 
 #[global_allocator]
-static ALLOC: PanicAlloc = PanicAlloc;
+static KERNEL_HEAP_ALLOCATOR: fixed_size_block::LockedHeap = fixed_size_block::LockedHeap::empty();
 
-struct PanicAlloc;
-
-unsafe impl GlobalAlloc for PanicAlloc {
-    unsafe fn alloc(&self, _layout: core::alloc::Layout) -> *mut u8 {
-        panic!("Alloc requested");
-    }
-
-    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: core::alloc::Layout) {
-        panic!("Dealloc requested");
-    }
-}
+//TODO: Provide a better number than 40
+pub static PHYSICAL_MEMORY_ALLOCATOR: buddy_system_allocator::LockedHeap<40> =
+    buddy_system_allocator::LockedHeap::new();

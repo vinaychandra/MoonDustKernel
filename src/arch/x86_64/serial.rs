@@ -1,4 +1,4 @@
-use log::{Level, Metadata, Record};
+use log::{Metadata, Record};
 use spin::Mutex;
 use uart_16550::SerialPort;
 
@@ -44,8 +44,8 @@ macro_rules! serial_println {
 pub struct SerialLogger;
 
 impl log::Log for SerialLogger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= Level::Info
+    fn enabled(&self, _metadata: &Metadata) -> bool {
+        true
     }
 
     fn log(&self, record: &Record) {

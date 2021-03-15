@@ -5,9 +5,14 @@ authors = ["Vinay Chandra Dommeti <moondust@vinay.vc>"]
 edition = "2018"
 
 [dependencies]
+bitflags = "1.2"
+const_fn_assert = "0.1"
 lazy_static = { version = "1", features = ["spin_no_std"] }
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
 spin = "0.7"
+linked_list_allocator = "0.8"
+
+moondust-utils = {path = "./others/moondust-utils" }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 uart_16550 = "0.2.10"

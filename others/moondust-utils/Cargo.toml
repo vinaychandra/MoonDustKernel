@@ -1,0 +1,8 @@
+[package]
+name = "moondust-utils"
+version = "0.0.4"
+authors = ["Vinay Chandra Dommeti <moondust@vinay.vc>"]
+edition = "2018"
+
+[dependencies]
+spin = "0.7"

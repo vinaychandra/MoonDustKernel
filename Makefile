@@ -11,7 +11,7 @@ endif
 KERNEL_SOURCES := $(shell find ./src -name '*.rs')
 USERSPACE := $(wildcard ./userspace/*)
 
-.PHONY: userspace
+.PHONY: userspace target/$(PLATFORM)-moondust/debug/moondust-kernel
 
 all: userspace target/$(PLATFORM)-moondust/debug/moondust-kernel
 run: efi

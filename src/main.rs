@@ -11,6 +11,7 @@
 #![feature(const_fn_fn_ptr_basics)]
 #![feature(const_fn)]
 #![feature(const_mut_refs)]
+#![feature(const_raw_ptr_to_usize_cast)]
 #![feature(crate_visibility_modifier)]
 #![feature(future_poll_fn)]
 #![feature(map_first_last)]
@@ -19,6 +20,7 @@
 #![feature(result_into_ok_or_err)]
 #![feature(thread_local)]
 #![feature(unsafe_block_in_unsafe_fn)]
+#![deny(unsafe_op_in_unsafe_fn)]
 
 use core::{
     panic::PanicInfo,
@@ -43,6 +45,10 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 extern crate alloc;
+#[macro_use]
+extern crate const_fn_assert;
+#[macro_use]
+extern crate bitflags;
 
 /// Logger used by the kernel everywhere. This logger is activated by the architecture
 /// level startup once the memory is ready.
@@ -61,7 +67,7 @@ fn _start() -> ! {
 
     // We only run bsp on the first processor.
     if this_val == 0 {
-        loop {}
+        crate::arch::bootstrap::initialize_bootstrap_core();
     } else {
         main_app()
     }
@@ -79,7 +85,6 @@ pub fn main_bsp() -> ! {
 }
 
 /// This function is called on panic.
-#[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     error!("Panic: {}", info);
@@ -88,7 +93,6 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 #[alloc_error_handler]
-#[cfg(not(test))]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     panic!("allocation error: {:?}", layout)
 }
