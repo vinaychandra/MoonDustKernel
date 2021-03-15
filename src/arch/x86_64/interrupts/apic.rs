@@ -1,0 +1,55 @@
+use core::ptr::null_mut;
+
+use acpi::platform::Apic;
+use apic::{io_apic::IoApicBase, ApicBase};
+use x86_64::{registers::model_specific::Msr, PhysAddr};
+
+use crate::arch::globals;
+
+#[thread_local]
+pub static mut LAPIC: ApicBase = unsafe { ApicBase::new(null_mut()) };
+
+pub fn initialize_lapic() {
+    let lapic_base = read_lapic_base();
+    let lapic_mem = lapic_base.as_u64() + globals::MEM_MAP_OFFSET_LOCATION;
+    let lapic_mem = lapic_mem as *mut ();
+
+    let mut lapic_instance = unsafe { ApicBase::new(lapic_mem) };
+
+    // Enable local apic
+    {
+        let spurios_vector = lapic_instance.spurious_interrupt_vector();
+        let mut val = spurios_vector.read();
+        val.enable_apic_software(true);
+    }
+
+    unsafe {
+        LAPIC = lapic_instance;
+    }
+}
+
+pub fn initialize_ioapic(apic: Apic) {
+    let count = apic.io_apics.len();
+    info!(target: "apic", "IOApics found: {}", count);
+
+    let first_apic = &apic.io_apics[0];
+    let address = first_apic.address as u64;
+    let address = (address + globals::MEM_MAP_OFFSET_LOCATION) as *mut u8;
+    let mut ioapic = unsafe { IoApicBase::new(address) };
+
+    let lapic = unsafe { &mut LAPIC };
+    let id = lapic.id().read().id();
+
+    ioapic.update_redirection_table_entry(1, |entry| {
+        entry.set_destination(id);
+        entry.set_masked(false);
+        entry.set_vector(super::InterruptIndex::Keyboard.as_u8());
+    });
+}
+
+/// Get the LApic Base address.
+/// This function reads from `IA32_APIC_BASE`.
+fn read_lapic_base() -> PhysAddr {
+    const IA32_APIC_BASE: u32 = 0x1B;
+    unsafe { PhysAddr::new(Msr::new(IA32_APIC_BASE).read() & 0xFFFFFF000 as u64) }
+}

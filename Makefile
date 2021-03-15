@@ -44,8 +44,11 @@ check-image: target/$(PLATFORM)-moondust/debug/moondust-kernel
 efi: target/disk-$(PLATFORM).img
 	qemu-system-x86_64 -bios $(OVMF) -m 128 -drive file=./target/disk-x86_64.img,format=raw -serial stdio
 
+efi-monitor: target/disk-$(PLATFORM).img
+	qemu-system-x86_64 -bios $(OVMF) -m 128 -drive file=./target/disk-x86_64.img,format=raw -monitor stdio -serial vc
+
 efi-wait: target/disk-$(PLATFORM).img
-	qemu-system-x86_64 -bios $(OVMF) -m 128 -drive file=./target/disk-x86_64.img,format=raw -serial stdio -s -S
+	qemu-system-x86_64 -bios $(OVMF) -m 128 -drive file=./target/disk-x86_64.img,format=raw -serial vc -s -S
 
 clean:
 	rm -rf ./target

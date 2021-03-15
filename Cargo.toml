@@ -11,12 +11,15 @@ lazy_static = { version = "1", features = ["spin_no_std"] }
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
 spin = "0.7"
 linked_list_allocator = "0.8"
+acpi = "2.0.0"
 
 moondust-utils = {path = "./others/moondust-utils" }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 uart_16550 = "0.2.10"
 x86_64 = "0.13.2"
+apic = { git="https://github.com/rust-osdev/apic", rev="c662e70" }
+pc-keyboard = "0.5.1"
 
 [workspace]
 members = [ ]

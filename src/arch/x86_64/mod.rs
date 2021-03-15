@@ -1,6 +1,7 @@
 pub mod bootstrap;
 pub mod gdt;
 pub mod globals;
+pub mod interrupts;
 pub mod memory;
 pub mod serial;
 

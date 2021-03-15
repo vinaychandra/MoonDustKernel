@@ -1,3 +1,4 @@
+pub mod devices;
 pub mod memory;
 
 /// Align value upwards.

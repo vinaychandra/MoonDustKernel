@@ -41,7 +41,7 @@ pub fn initialize_bootstrap_core() -> ! {
 
 /// Level 2 initializing.
 /// This creates a memory map in higher half and then jumps to it.
-fn initialize_bootstrap_core2() {
+fn initialize_bootstrap_core2() -> ! {
     // Intialize logging
     log::set_logger(&crate::KERNEL_LOGGER)
         .map(|()| log::set_max_level(LevelFilter::Info))
@@ -164,5 +164,43 @@ fn initialize_bootstrap_core2() {
         info!(target: "bootstrap", "Initialize GDT");
         super::gdt::initialize_gdt();
         info!(target: "bootstrap", "GDT ready");
+    }
+
+    {
+        info!(target: "bootstrap", "Initialize IDT");
+        super::interrupts::initialize_idt();
+        info!(target: "bootstrap", "IDT ready");
+    }
+
+    {
+        info!(target: "bootstrap", "Kernel stack setup");
+
+        let current_page_table =
+            unsafe { memory::active_level_4_table(VirtAddr::new(MEM_MAP_OFFSET_LOCATION)) };
+        let mut opt = unsafe {
+            OffsetPageTable::new(current_page_table, VirtAddr::new(MEM_MAP_OFFSET_LOCATION))
+        };
+        let new_stack = crate::common::memory::kernel_stack::create_new_kernel_stack(&mut opt);
+
+        // Switch to level 2.
+        unsafe {
+            asm!("
+                mov rsp, {0}
+                mov rbp, {0}
+                jmp {1}
+                ", in(reg) new_stack, sym initialize_bootstrap_core3, options(noreturn));
+        }
+    }
+}
+
+fn initialize_bootstrap_core3() -> ! {
+    {
+        info!(target: "bootstrap", "load interrupts");
+        super::interrupts::load_interrupts().unwrap();
+        info!(target: "bootstrap", "loaded interrupts");
+    }
+
+    loop {
+        x86_64::instructions::hlt();
     }
 }
