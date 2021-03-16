@@ -1,3 +1,8 @@
+use core::{
+    sync::atomic::{AtomicU64, Ordering},
+    usize,
+};
+
 use super::{globals, memory, PHYSICAL_MEMORY_ALLOCATOR};
 use crate::common::memory::paging::{IMemoryMapper, MapperPermissions};
 use globals::MEM_MAP_OFFSET_LOCATION;
@@ -18,9 +23,11 @@ const EMPTY_PTE: PageTableEntry = PageTableEntry::new();
 struct MemMapEntries([PageTableEntry; 512]);
 static mut MEM_MAP_STACK: MemMapEntries = MemMapEntries([EMPTY_PTE; 512]);
 
-pub fn initialize_bootstrap_core() -> ! {
-    info!(target: "bootstrap", "Initializing x86_64 architecture");
+const ZERO_ATOMIC64: AtomicU64 = AtomicU64::new(0);
+static KERNEL_AP_STACKS: [AtomicU64; globals::MAX_CORE_COUNT] =
+    [ZERO_ATOMIC64; globals::MAX_CORE_COUNT];
 
+pub fn initialize_bootstrap_core() -> ! {
     // Pages for initial bootstrapping. This acts as an intermediate step.
     // We need this for setting up for the main stacks but the bootloader only provdes 1K in memory.
     let bsp_addr = &BSP_STACK[0] as *const u8 as usize;
@@ -36,6 +43,25 @@ pub fn initialize_bootstrap_core() -> ! {
         mov rbp, {0}
         jmp {1}
         ", in(reg) level_2_addr, sym initialize_bootstrap_core2, options(noreturn));
+    }
+}
+
+pub fn initialize_ap_core(core_num: usize) -> ! {
+    let mut level_2_addr = KERNEL_AP_STACKS[core_num].load(Ordering::SeqCst);
+    while level_2_addr == 0 {
+        level_2_addr = KERNEL_AP_STACKS[core_num].load(Ordering::SeqCst);
+    }
+
+    // Refresh TLB
+    x86_64::instructions::tlb::flush_all();
+
+    // Switch to level 2.
+    unsafe {
+        asm!("
+        mov rsp, {0}
+        mov rbp, {0}
+        jmp {1}
+        ", in(reg) level_2_addr, sym initialize_ap_core2, options(noreturn));
     }
 }
 
@@ -172,8 +198,15 @@ fn initialize_bootstrap_core2() -> ! {
         info!(target: "bootstrap", "IDT ready");
     }
 
+    let ap_count: usize;
     {
-        info!(target: "bootstrap", "Kernel stack setup");
+        info!(target: "bootstrap", "load interrupts");
+        ap_count = super::interrupts::load_interrupts_bsp().unwrap();
+        info!(target: "bootstrap", "loaded interrupts");
+    }
+
+    {
+        info!(target: "bootstrap", "Kernel stack setup for bootstrap and {} application cores", ap_count);
 
         let current_page_table =
             unsafe { memory::active_level_4_table(VirtAddr::new(MEM_MAP_OFFSET_LOCATION)) };
@@ -181,6 +214,14 @@ fn initialize_bootstrap_core2() -> ! {
             OffsetPageTable::new(current_page_table, VirtAddr::new(MEM_MAP_OFFSET_LOCATION))
         };
         let new_stack = crate::common::memory::kernel_stack::create_new_kernel_stack(&mut opt);
+        info!(target: "bootstrap", "Kernel stack setup for bsp core: {:x}", new_stack as u64);
+
+        // Generate AP stacks
+        for i in 1..ap_count + 1 {
+            let ap_stack = crate::common::memory::kernel_stack::create_new_kernel_stack(&mut opt);
+            info!(target: "bootstrap", "Kernel stack setup for ap core [{}]: {:x}", ap_count, ap_stack as u64);
+            KERNEL_AP_STACKS[i].store(ap_stack as u64, Ordering::SeqCst);
+        }
 
         // Switch to level 2.
         unsafe {
@@ -193,13 +234,40 @@ fn initialize_bootstrap_core2() -> ! {
     }
 }
 
-fn initialize_bootstrap_core3() -> ! {
+fn initialize_ap_core2() -> ! {
     {
-        info!(target: "bootstrap", "load interrupts");
-        super::interrupts::load_interrupts().unwrap();
-        info!(target: "bootstrap", "loaded interrupts");
+        info!(target: "bootstrap_ap", "Initializing TLS");
+        memory::cpu_local::initialize_tls();
+        info!(target: "bootstrap_ap", "TLS Initialized");
     }
 
+    {
+        info!(target: "bootstrap_ap", "Initialize GDT");
+        super::gdt::initialize_gdt();
+        info!(target: "bootstrap_ap", "GDT ready");
+    }
+
+    {
+        info!(target: "bootstrap_ap", "Initialize IDT");
+        super::interrupts::initialize_idt();
+        info!(target: "bootstrap_ap", "IDT ready");
+    }
+
+    {
+        info!(target: "bootstrap_ap", "load interrupts");
+        super::interrupts::load_interrupts_ap();
+        info!(target: "bootstrap_ap", "loaded interrupts");
+    }
+
+    info!(target: "bootstrap_ap", "CPU Core ready. Is AP: false, Core ID: {}", crate::arch::PROCESSOR_ID.get());
+
+    loop {
+        x86_64::instructions::hlt();
+    }
+}
+
+fn initialize_bootstrap_core3() -> ! {
+    info!(target: "bootstrap", "CPU Core ready. Is AP: true, Core ID: {}", crate::arch::PROCESSOR_ID.get());
     loop {
         x86_64::instructions::hlt();
     }

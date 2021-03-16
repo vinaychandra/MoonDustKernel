@@ -1,4 +1,4 @@
-use core::ptr::null_mut;
+use core::{cell::Cell, ptr::null_mut, usize};
 
 use acpi::platform::Apic;
 use apic::{io_apic::IoApicBase, ApicBase};
@@ -8,6 +8,9 @@ use crate::arch::globals;
 
 #[thread_local]
 pub static mut LAPIC: ApicBase = unsafe { ApicBase::new(null_mut()) };
+
+#[thread_local]
+pub static PROCESSOR_ID: Cell<usize> = Cell::new(0);
 
 pub fn initialize_lapic() {
     let lapic_base = read_lapic_base();
@@ -22,6 +25,8 @@ pub fn initialize_lapic() {
         let mut val = spurios_vector.read();
         val.enable_apic_software(true);
     }
+
+    PROCESSOR_ID.replace(lapic_instance.id().read().id() as usize);
 
     unsafe {
         LAPIC = lapic_instance;

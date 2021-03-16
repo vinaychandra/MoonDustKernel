@@ -24,7 +24,7 @@
 
 use core::{
     panic::PanicInfo,
-    sync::atomic::{AtomicU8, Ordering},
+    sync::atomic::{AtomicUsize, Ordering},
 };
 use logging::UnifiedLogger;
 
@@ -54,7 +54,7 @@ extern crate bitflags;
 /// level startup once the memory is ready.
 pub static KERNEL_LOGGER: UnifiedLogger = UnifiedLogger::new();
 
-static PROCESSOR_COUNT: AtomicU8 = AtomicU8::new(0);
+static PROCESSOR_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 /// Entry point for the Operating System. This calls into the bootstrap
 /// of architecture. This is not expected to return because the architecture
@@ -69,7 +69,7 @@ fn _start() -> ! {
     if this_val == 0 {
         crate::arch::bootstrap::initialize_bootstrap_core();
     } else {
-        main_app()
+        crate::arch::bootstrap::initialize_ap_core(this_val);
     }
 }
 

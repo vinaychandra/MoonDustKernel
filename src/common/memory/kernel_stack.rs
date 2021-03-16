@@ -18,6 +18,6 @@ pub fn create_new_kernel_stack(mapper: &mut dyn IMemoryMapper) -> *const () {
         .expect("Failed to create kernel stack");
 
     let stack_end_addr = start_addr + globals::KERNEL_STACK_MAX_SIZE;
-    let aligned_stack_end = align_down(stack_end_addr, globals::STACK_ALIGN);
+    let aligned_stack_end = align_down(stack_end_addr, globals::STACK_ALIGN) - globals::PAGE_SIZE;
     aligned_stack_end as *const ()
 }

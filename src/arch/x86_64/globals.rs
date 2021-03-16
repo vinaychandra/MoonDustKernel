@@ -17,3 +17,6 @@ pub const KERNEL_STACK_START: usize = 0x_FFFF_FF90_0000_1000;
 pub const KERNEL_STACK_MAX_SIZE: usize = 10 * 1024 * 1024;
 pub const KERNEL_STACK_GAP: usize = 0x100_0000;
 pub const KERNEL_STACK_TOTAL_SIZE: usize = 10 * 1024 * 1024 * 1024;
+
+/// Number of cores to suppoer
+pub const MAX_CORE_COUNT: usize = 512;

@@ -53,7 +53,8 @@ pub fn initialize_idt() {
     }
 }
 
-pub fn load_interrupts() -> Result<(), &'static str> {
+/// Loads the interrupt mappings and returns the number of AP cores.
+pub fn load_interrupts_bsp() -> Result<usize, &'static str> {
     info!(target:"interrupts", "Setting up interrupts");
 
     info!(target:"interrupts", "Disabling PIC");
@@ -86,7 +87,18 @@ pub fn load_interrupts() -> Result<(), &'static str> {
         return Err("APIC data not found in ACPI tables.");
     }
 
-    Ok(())
+    let processor_info = platform_info
+        .processor_info
+        .ok_or("Cannot retrieve processor info")?;
+
+    Ok(processor_info.application_processors.len())
+}
+
+/// Load AP core interrupts
+pub fn load_interrupts_ap() {
+    info!(target:"interrupts_ap", "Enable local APIC");
+    self::apic::initialize_lapic();
+    info!(target:"interrupts_ap", "Local APIC ready");
 }
 
 fn disable_pic() {

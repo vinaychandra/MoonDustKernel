@@ -20,3 +20,6 @@ static KERNEL_HEAP_ALLOCATOR: fixed_size_block::LockedHeap = fixed_size_block::L
 //TODO: Provide a better number than 40
 pub static PHYSICAL_MEMORY_ALLOCATOR: buddy_system_allocator::LockedHeap<40> =
     buddy_system_allocator::LockedHeap::new();
+
+pub use interrupts::apic::LAPIC;
+pub use interrupts::apic::PROCESSOR_ID;
