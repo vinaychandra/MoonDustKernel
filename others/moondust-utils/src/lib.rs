@@ -6,5 +6,7 @@
 
 extern crate alloc;
 
+pub mod async_executor;
+pub mod bounded_segqueue;
 pub mod buddy_system_allocator;
 pub mod interval_tree;
