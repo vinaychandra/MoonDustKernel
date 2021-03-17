@@ -1,6 +1,5 @@
 #![no_std]
 #![allow(dead_code)]
-#![feature(unsafe_block_in_unsafe_fn)]
 #![feature(const_mut_refs, const_fn_fn_ptr_basics)]
 #![feature(result_into_ok_or_err)]
 #![deny(unsafe_op_in_unsafe_fn)]
