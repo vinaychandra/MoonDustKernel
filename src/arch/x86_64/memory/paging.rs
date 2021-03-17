@@ -88,13 +88,12 @@ impl<'a> IMemoryMapper for OffsetPageTable<'a> {
         };
         let _num_pages = page_range.count();
 
-        let mut frame_allocator = super::frame_allocator::get_frame_allocator();
+        let mut frame_allocator = super::frame_allocator::get_frame_allocator_zeroed();
         for page in page_range {
             let _s: *const u8 = page.start_address().as_ptr();
             let frame = frame_allocator
                 .allocate_frame()
                 .expect("Cannot allocate frame");
-            debug!(target:"paging", "alloc {:x} to {:?}", _s as usize, frame);
             unsafe {
                 self.map_to(page, frame, perms, &mut frame_allocator)
                     .expect("Mapping failed.")
@@ -121,10 +120,10 @@ impl<'a> IMemoryMapper for OffsetPageTable<'a> {
         Ok(())
     }
 
-    fn virt_to_phys(&self, virt_addr: *const u8) -> Option<*const u8> {
+    fn virt_to_phys(&self, virt_addr: *const ()) -> Option<*const ()> {
         let virt_addr = VirtAddr::from_ptr(virt_addr);
         let phys_addr = self.translate_addr(virt_addr)?;
-        Some(phys_addr.as_u64() as *const u8)
+        Some(phys_addr.as_u64() as *const ())
     }
 
     fn get_page_table(&self) -> *const u8 {

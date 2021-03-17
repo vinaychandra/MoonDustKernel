@@ -31,7 +31,7 @@ pub fn initialize_lapic() {
     {
         lapic_instance
             .timer_divide_configuration()
-            .update(|t| t.set(TimerDivideConfigurationValue::Divide4));
+            .update(|t| t.set(TimerDivideConfigurationValue::Divide64));
         lapic_instance.timer_local_vector_table_entry().update(|t| {
             t.set_vector(super::InterruptIndex::Timer.as_u8());
             t.set_timer_mode(true);

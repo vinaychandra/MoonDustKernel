@@ -77,13 +77,14 @@ pub static SCHEDULER: PriorityExecutor<5> = PriorityExecutor::const_new();
 
 /// Main function on AP Processor.
 pub fn main_app() -> ! {
+    x86_64::instructions::interrupts::enable();
     loop {}
 }
 
 /// Main Function on bootstrap processor.
 /// This function should not return.
 pub fn main_bsp() -> ! {
-    x86_64::instructions::interrupts::enable();
+    // x86_64::instructions::interrupts::enable();
     loop {}
 }
 

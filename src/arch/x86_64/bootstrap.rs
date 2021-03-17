@@ -61,7 +61,7 @@ pub fn initialize_ap_core(core_num: usize) -> ! {
         mov rsp, {0}
         mov rbp, {0}
         jmp {1}
-        ", in(reg) level_2_addr, sym initialize_ap_core2, options(noreturn));
+        ", in(reg) level_2_addr, sym initialize_ap_core_2, options(noreturn));
     }
 }
 
@@ -225,6 +225,7 @@ fn initialize_bootstrap_core2() -> ! {
         for i in 1..ap_count + 1 {
             let ap_stack = crate::common::memory::kernel_stack::create_new_kernel_stack(&mut opt);
             info!(target: "bootstrap", "Kernel stack setup for ap core [{}]: {:x}", ap_count, ap_stack as u64);
+            debug!(target: "bootstrap", "Kernel stack setup for ap core [{}]: V2P {:x}. {:?}", ap_count, ap_stack as u64, opt.virt_to_phys(ap_stack));
             KERNEL_AP_STACKS[i].store(ap_stack as u64, Ordering::SeqCst);
         }
 
@@ -239,7 +240,7 @@ fn initialize_bootstrap_core2() -> ! {
     }
 }
 
-fn initialize_ap_core2() -> ! {
+fn initialize_ap_core_2() -> ! {
     {
         info!(target: "bootstrap_ap", "Initializing TLS");
         memory::cpu_local::initialize_tls();
@@ -264,12 +265,12 @@ fn initialize_ap_core2() -> ! {
         info!(target: "bootstrap_ap", "loaded interrupts");
     }
 
-    info!(target: "bootstrap_ap", "CPU Core ready. Is AP: false, Core ID: {}", crate::arch::PROCESSOR_ID.get());
+    info!(target: "bootstrap_ap", "CPU Core ready. Is BSP: false, Core ID: {}", crate::arch::PROCESSOR_ID.get());
 
     crate::main_app();
 }
 
 fn initialize_bootstrap_core3() -> ! {
-    info!(target: "bootstrap", "CPU Core ready. Is AP: true, Core ID: {}", crate::arch::PROCESSOR_ID.get());
+    info!(target: "bootstrap", "CPU Core ready. Is BSP: true, Core ID: {}", crate::arch::PROCESSOR_ID.get());
     crate::main_bsp();
 }
