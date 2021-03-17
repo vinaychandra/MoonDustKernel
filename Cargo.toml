@@ -13,6 +13,7 @@ spin = "0.8"
 linked_list_allocator = "0.8"
 acpi = "2.0.0"
 crossbeam-queue = { version = "0.3.1", default-features = false, features = ["alloc"] }
+futures-lite = { version="1.11.2", default-features = false, features = ["alloc"] }
 
 moondust-utils = {path = "./others/moondust-utils" }
 

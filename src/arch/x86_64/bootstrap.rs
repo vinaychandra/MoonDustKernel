@@ -261,14 +261,10 @@ fn initialize_ap_core2() -> ! {
 
     info!(target: "bootstrap_ap", "CPU Core ready. Is AP: false, Core ID: {}", crate::arch::PROCESSOR_ID.get());
 
-    loop {
-        x86_64::instructions::hlt();
-    }
+    crate::main_app();
 }
 
 fn initialize_bootstrap_core3() -> ! {
     info!(target: "bootstrap", "CPU Core ready. Is AP: true, Core ID: {}", crate::arch::PROCESSOR_ID.get());
-    loop {
-        x86_64::instructions::hlt();
-    }
+    crate::main_bsp();
 }

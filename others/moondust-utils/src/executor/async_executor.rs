@@ -29,7 +29,7 @@ use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use core::task::{Poll, Waker};
 use spin::{Mutex, RwLock};
 
-use super::bounded_segqueue::BoundedSegQueue;
+use crate::bounded_segqueue::BoundedSegQueue;
 use async_task::Runnable;
 use futures_lite::{future, prelude::*};
 use vec_arena::Arena;

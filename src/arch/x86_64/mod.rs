@@ -3,6 +3,7 @@ pub mod gdt;
 pub mod globals;
 pub mod interrupts;
 pub mod memory;
+pub mod process;
 pub mod serial;
 
 use moondust_utils::buddy_system_allocator;
