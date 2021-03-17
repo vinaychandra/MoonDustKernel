@@ -1,7 +1,7 @@
 use core::{cell::Cell, ptr::null_mut, usize};
 
 use acpi::platform::Apic;
-use apic::{io_apic::IoApicBase, ApicBase};
+use apic::{io_apic::IoApicBase, registers::TimerDivideConfigurationValue, ApicBase};
 use x86_64::{registers::model_specific::Msr, PhysAddr};
 
 use crate::arch::globals;
@@ -19,11 +19,27 @@ pub fn initialize_lapic() {
 
     let mut lapic_instance = unsafe { ApicBase::new(lapic_mem) };
 
+    //TODO: Make sure the TPR (Task Priority Register) is set (so it won't block/postpone lower priority IRQs)
     // Enable local apic
     {
         let spurios_vector = lapic_instance.spurious_interrupt_vector();
         let mut val = spurios_vector.read();
         val.enable_apic_software(true);
+    }
+
+    // Enable timer
+    {
+        lapic_instance
+            .timer_divide_configuration()
+            .update(|t| t.set(TimerDivideConfigurationValue::Divide4));
+        lapic_instance.timer_local_vector_table_entry().update(|t| {
+            t.set_vector(super::InterruptIndex::Timer.as_u8());
+            t.set_timer_mode(true);
+            t.set_mask(false);
+        });
+        lapic_instance.timer_initial_count().update(|t| {
+            t.set(123456);
+        });
     }
 
     PROCESSOR_ID.replace(lapic_instance.id().read().id() as usize);

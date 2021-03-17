@@ -70,7 +70,7 @@ pub fn initialize_ap_core(core_num: usize) -> ! {
 fn initialize_bootstrap_core2() -> ! {
     // Intialize logging
     log::set_logger(&crate::KERNEL_LOGGER)
-        .map(|()| log::set_max_level(LevelFilter::Info))
+        .map(|()| log::set_max_level(LevelFilter::Debug))
         .expect("Setting logger failed");
 
     // This enables syscall extensions on x86_64
@@ -133,6 +133,11 @@ fn initialize_bootstrap_core2() -> ! {
 
             let entry_start: usize = entry.ptr();
             let entry_end: usize = entry.end_address() as usize;
+
+            info!(
+                target: "bootstrap",
+                "Free mem area added {:x} - {:x} ({} KiB)", entry_start, entry_end, (entry_end - entry_start) / 1024
+            );
 
             unsafe {
                 allocator.add_to_heap(

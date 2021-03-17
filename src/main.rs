@@ -83,6 +83,7 @@ pub fn main_app() -> ! {
 /// Main Function on bootstrap processor.
 /// This function should not return.
 pub fn main_bsp() -> ! {
+    x86_64::instructions::interrupts::enable();
     loop {}
 }
 

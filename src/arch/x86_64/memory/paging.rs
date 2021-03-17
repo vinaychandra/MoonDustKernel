@@ -94,6 +94,7 @@ impl<'a> IMemoryMapper for OffsetPageTable<'a> {
             let frame = frame_allocator
                 .allocate_frame()
                 .expect("Cannot allocate frame");
+            debug!(target:"paging", "alloc {:x} to {:?}", _s as usize, frame);
             unsafe {
                 self.map_to(page, frame, perms, &mut frame_allocator)
                     .expect("Mapping failed.")

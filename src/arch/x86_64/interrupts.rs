@@ -10,6 +10,7 @@ use crate::common::devices::acpi::MemoryHandler;
 
 pub mod apic;
 pub mod keyboard;
+pub mod timer;
 
 /// Index of interrupts. This is the index where IRQs are raised
 /// on PIC.
@@ -45,6 +46,7 @@ pub fn initialize_idt() {
         IDT.page_fault.set_handler_fn(page_fault_handler);
 
         IDT[InterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard::keyboard_handler);
+        IDT[InterruptIndex::Timer.as_usize()].set_handler_fn(timer::timer_handler);
 
         IDT.general_protection_fault.set_handler_fn(unhandled_fault);
         IDT.invalid_opcode.set_handler_fn(unhandled_fault_noerr);
