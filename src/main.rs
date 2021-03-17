@@ -61,14 +61,13 @@ static PROCESSOR_COUNT: AtomicUsize = AtomicUsize::new(0);
 /// calls into [main_bsp] and [main_app].
 #[no_mangle]
 fn _start() -> ! {
-    info!("MootDust Kernel: Pre-Init...");
-
     let this_val = PROCESSOR_COUNT.fetch_add(1, Ordering::SeqCst);
 
     // We only run bsp on the first processor.
     if this_val == 0 {
         crate::arch::bootstrap::initialize_bootstrap_core();
     } else {
+        loop {} // Do not run AP Core.
         crate::arch::bootstrap::initialize_ap_core(this_val);
     }
 }
@@ -84,7 +83,7 @@ pub fn main_app() -> ! {
 /// Main Function on bootstrap processor.
 /// This function should not return.
 pub fn main_bsp() -> ! {
-    // x86_64::instructions::interrupts::enable();
+    x86_64::instructions::interrupts::enable();
     loop {}
 }
 
