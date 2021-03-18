@@ -15,6 +15,9 @@ acpi = "2.0.0"
 crossbeam-queue = { version = "0.3.1", default-features = false, features = ["alloc"] }
 futures-lite = { version="1.11.2", default-features = false, features = ["alloc"] }
 
+# ELF
+elfloader = "0.11"
+
 moondust-utils = {path = "./common/moondust-utils" }
 moondust-sys = {path = "./common/moondust-sys" }
 

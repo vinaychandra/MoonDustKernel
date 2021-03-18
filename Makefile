@@ -13,7 +13,7 @@ USERSPACE := $(wildcard ./userspace/*)
 
 .PHONY: userspace target/$(PLATFORM)-moondust/debug/moondust-kernel
 
-all: userspace target/$(PLATFORM)-moondust/debug/moondust-kernel
+all: target/disk-$(PLATFORM).img
 run: efi
 
 # Generate bindings for bootboot. (Converts *.h files to rust bindings)

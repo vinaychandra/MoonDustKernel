@@ -44,6 +44,7 @@ pub mod logging;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+#[macro_use]
 extern crate alloc;
 #[macro_use]
 extern crate const_fn_assert;
@@ -83,6 +84,7 @@ pub fn main_app() -> ! {
 /// Main Function on bootstrap processor.
 /// This function should not return.
 pub fn main_bsp() -> ! {
+    load_alpha();
     x86_64::instructions::interrupts::enable();
     loop {}
 }
@@ -99,3 +101,5 @@ fn panic(info: &PanicInfo) -> ! {
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     panic!("allocation error: {:?}", layout)
 }
+
+fn load_alpha() {}
