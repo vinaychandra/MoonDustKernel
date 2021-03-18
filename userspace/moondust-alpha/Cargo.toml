@@ -1,0 +1,8 @@
+[package]
+name = "moondust-alpha"
+version = "0.0.1"
+authors = ["Vinay Chandra Dommeti <moondust@vinay.vc>"]
+edition = "2018"
+
+[dependencies]
+moondust-std = { path = "../../common/moondust-std" }
