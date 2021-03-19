@@ -27,10 +27,13 @@ static mut TSS: TaskStateSegment = TaskStateSegment::new();
 
 #[thread_local]
 static mut GDT: GlobalDescriptorTable = GlobalDescriptorTable::new();
+static mut GLOBAL_GDT: GlobalDescriptorTable = GlobalDescriptorTable::new(); // Temporary GDT
 
 #[thread_local]
 static mut SELECTORS: SegmentSelectors = SegmentSelectors::new();
+static mut GLOBAL_SELECTORS: SegmentSelectors = SegmentSelectors::new();
 
+#[derive(Clone)]
 struct SegmentSelectors {
     kernel_code_selector: SegmentSelector,
     kernel_data_selector: SegmentSelector,
@@ -65,9 +68,10 @@ pub fn initialize_gdt() {
         let user_code_selector = gdt.add_entry(Descriptor::user_code_segment());
 
         let tss_selector = gdt.add_entry(Descriptor::tss_segment(&TSS));
+        GLOBAL_GDT = gdt.clone();
         GDT = gdt;
 
-        SELECTORS = SegmentSelectors {
+        let selectors = SegmentSelectors {
             kernel_code_selector,
             kernel_data_selector,
             user_code_selector,
@@ -75,17 +79,29 @@ pub fn initialize_gdt() {
             tss_selector,
         };
         GDT.load();
-        set_cs(SELECTORS.kernel_code_selector);
-        load_ss(SELECTORS.kernel_data_selector);
-        load_tss(SELECTORS.tss_selector);
+        set_cs(selectors.kernel_code_selector);
+        load_ss(selectors.kernel_data_selector);
+        load_tss(selectors.tss_selector);
 
         x86_64::registers::model_specific::Star::write(
-            SELECTORS.user_code_selector,
-            SELECTORS.user_data_selector,
-            SELECTORS.kernel_code_selector,
-            SELECTORS.kernel_data_selector,
+            selectors.user_code_selector,
+            selectors.user_data_selector,
+            selectors.kernel_code_selector,
+            selectors.kernel_data_selector,
         )
         .unwrap();
+
+        GLOBAL_SELECTORS = selectors.clone();
+        SELECTORS = selectors;
+    }
+}
+
+pub fn load_global_gdt() {
+    unsafe {
+        GLOBAL_GDT.load();
+        set_cs(GLOBAL_SELECTORS.kernel_code_selector);
+        load_ss(GLOBAL_SELECTORS.kernel_data_selector);
+        load_tss(GLOBAL_SELECTORS.tss_selector);
     }
 }
 

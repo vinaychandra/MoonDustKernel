@@ -23,9 +23,15 @@ pub static PHYSICAL_MEMORY_ALLOCATOR: buddy_system_allocator::LockedHeap<40> =
     buddy_system_allocator::LockedHeap::new();
 
 pub mod cpu_locals {
+    use core::cell::RefCell;
+
+    use alloc::sync::Arc;
+    use moondust_utils::sync::mutex::Mutex;
+
     pub use super::interrupts::apic::LAPIC;
     pub use super::interrupts::apic::PROCESSOR_ID;
+    use super::memory::paging::KernelPageTable;
 
-    // #[thread_local]
-    // pub static PAGE_TABLE: ::moondust_utils::sync::mutex::Mutex<>
+    #[thread_local]
+    pub static PAGE_TABLE: RefCell<Option<Arc<Mutex<KernelPageTable>>>> = RefCell::new(None);
 }

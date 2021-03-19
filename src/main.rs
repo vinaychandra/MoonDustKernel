@@ -71,8 +71,8 @@ fn _start() -> ! {
     if this_val == 0 {
         crate::arch::bootstrap::initialize_bootstrap_core();
     } else {
-        loop {} // Do not run AP Core.
-                // crate::arch::bootstrap::initialize_ap_core(this_val);
+        // loop {} // Do not run AP Core.
+        crate::arch::bootstrap::initialize_ap_core(this_val);
     }
 }
 

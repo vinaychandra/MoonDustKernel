@@ -12,7 +12,7 @@ use globals::MEM_MAP_OFFSET_LOCATION;
 use log::LevelFilter;
 use x86_64::{
     align_down,
-    registers::model_specific::EferFlags,
+    registers::{control::Cr4Flags, model_specific::EferFlags},
     structures::paging::{page_table::PageTableEntry, OffsetPageTable, PageTableFlags, Translate},
     PhysAddr, VirtAddr,
 };
@@ -55,6 +55,24 @@ pub fn initialize_ap_core(core_num: usize) -> ! {
         level_2_addr = KERNEL_AP_STACKS[core_num].load(Ordering::SeqCst);
     }
 
+    // This enables syscall extensions on x86_64
+    {
+        let mut efer = x86_64::registers::model_specific::Efer::read();
+        efer |= EferFlags::NO_EXECUTE_ENABLE;
+        efer |= EferFlags::SYSTEM_CALL_EXTENSIONS;
+        unsafe {
+            x86_64::registers::model_specific::Efer::write(efer);
+        }
+    }
+
+    {
+        let mut cr4 = x86_64::registers::control::Cr4::read();
+        cr4 |= Cr4Flags::PAGE_GLOBAL;
+        cr4 |= Cr4Flags::PCID;
+    }
+
+    super::gdt::load_global_gdt();
+
     // Refresh TLB
     x86_64::instructions::tlb::flush_all();
 
@@ -84,6 +102,12 @@ fn initialize_bootstrap_core2() -> ! {
         unsafe {
             x86_64::registers::model_specific::Efer::write(efer);
         }
+    }
+
+    {
+        let mut cr4 = x86_64::registers::control::Cr4::read();
+        cr4 |= Cr4Flags::PAGE_GLOBAL;
+        cr4 |= Cr4Flags::PCID;
     }
 
     {
@@ -267,7 +291,6 @@ fn initialize_ap_core_2() -> ! {
     }
 
     info!(target: "bootstrap_ap", "CPU Core ready. Is BSP: false, Core ID: {}", cpu_locals::PROCESSOR_ID.get());
-
     crate::main_app();
 }
 

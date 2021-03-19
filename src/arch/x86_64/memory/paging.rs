@@ -1,12 +1,26 @@
 use x86_64::{
     structures::paging::{
-        page::PageRange, FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags, PhysFrame,
-        Size4KiB, Translate,
+        page::PageRange, FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags,
+        PhysFrame, Size4KiB, Translate,
     },
     PhysAddr, VirtAddr,
 };
 
-use crate::common::memory::paging::{IMemoryMapper, MapperPermissions};
+use crate::{
+    arch::globals,
+    common::memory::paging::{IMemoryMapper, MapperPermissions},
+};
+
+pub struct KernelPageTable {
+    page_table: PageTable,
+}
+
+impl KernelPageTable {
+    pub fn get_mapper(&mut self) -> impl IMemoryMapper + '_ {
+        let offset = VirtAddr::new(globals::MEM_MAP_OFFSET_LOCATION);
+        unsafe { OffsetPageTable::new(&mut self.page_table, offset) }
+    }
+}
 
 impl<'a> IMemoryMapper for OffsetPageTable<'a> {
     fn map(
