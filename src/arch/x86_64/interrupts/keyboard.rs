@@ -23,7 +23,7 @@ pub extern "x86-interrupt" fn keyboard_handler(_stack_frame: &mut InterruptStack
             }
         }
 
-        let lapic = &mut crate::arch::LAPIC;
+        let lapic = &mut crate::arch::cpu_locals::LAPIC;
         // lapic_val.send_eoi(InterruptIndex::Keyboard as u8);
         let eoi = lapic.end_of_interrupt();
         eoi.signal();

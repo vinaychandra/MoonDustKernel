@@ -23,9 +23,6 @@ pub trait IMemoryMapper {
 
     /// Convert virtual address to physical address.
     fn virt_to_phys(&self, virt_addr: *const ()) -> Option<*const ()>;
-
-    /// Get the root page table that is denoted by this mapper.
-    fn get_page_table(&self) -> *const u8;
 }
 
 pub trait IPageTable {

@@ -7,6 +7,9 @@ use core::{
 use alloc::{sync::Arc, task::Wake};
 use futures_lite::{pin, Future};
 
+mod process_struct;
+pub use process_struct::*;
+
 static SHOULD_WAKE: AtomicBool = AtomicBool::new(false);
 
 pub fn block_on<T>(task: impl Future<Output = T>) -> T {

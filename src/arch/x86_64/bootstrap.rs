@@ -4,7 +4,10 @@ use core::{
 };
 
 use super::{globals, memory, PHYSICAL_MEMORY_ALLOCATOR};
-use crate::common::memory::paging::{IMemoryMapper, MapperPermissions};
+use crate::{
+    arch::cpu_locals,
+    common::memory::paging::{IMemoryMapper, MapperPermissions},
+};
 use globals::MEM_MAP_OFFSET_LOCATION;
 use log::LevelFilter;
 use x86_64::{
@@ -153,8 +156,7 @@ fn initialize_bootstrap_core2() -> ! {
     {
         info!(target: "bootstrap", "Map initial kernel heap");
 
-        let current_page_table =
-            unsafe { memory::active_level_4_table(VirtAddr::new(MEM_MAP_OFFSET_LOCATION)) };
+        let current_page_table = unsafe { memory::active_level_4_table_default() };
         let mut opt = unsafe {
             OffsetPageTable::new(current_page_table, VirtAddr::new(MEM_MAP_OFFSET_LOCATION))
         };
@@ -213,8 +215,7 @@ fn initialize_bootstrap_core2() -> ! {
     {
         info!(target: "bootstrap", "Kernel stack setup for bootstrap and {} application cores", ap_count);
 
-        let current_page_table =
-            unsafe { memory::active_level_4_table(VirtAddr::new(MEM_MAP_OFFSET_LOCATION)) };
+        let current_page_table = unsafe { memory::active_level_4_table_default() };
         let mut opt = unsafe {
             OffsetPageTable::new(current_page_table, VirtAddr::new(MEM_MAP_OFFSET_LOCATION))
         };
@@ -265,12 +266,12 @@ fn initialize_ap_core_2() -> ! {
         info!(target: "bootstrap_ap", "loaded interrupts");
     }
 
-    info!(target: "bootstrap_ap", "CPU Core ready. Is BSP: false, Core ID: {}", crate::arch::PROCESSOR_ID.get());
+    info!(target: "bootstrap_ap", "CPU Core ready. Is BSP: false, Core ID: {}", cpu_locals::PROCESSOR_ID.get());
 
     crate::main_app();
 }
 
 fn initialize_bootstrap_core3() -> ! {
-    info!(target: "bootstrap", "CPU Core ready. Is BSP: true, Core ID: {}", crate::arch::PROCESSOR_ID.get());
+    info!(target: "bootstrap", "CPU Core ready. Is BSP: true, Core ID: {}", cpu_locals::PROCESSOR_ID.get());
     crate::main_bsp();
 }

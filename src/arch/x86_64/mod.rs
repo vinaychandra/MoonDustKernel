@@ -22,5 +22,10 @@ static KERNEL_HEAP_ALLOCATOR: fixed_size_block::LockedHeap = fixed_size_block::L
 pub static PHYSICAL_MEMORY_ALLOCATOR: buddy_system_allocator::LockedHeap<40> =
     buddy_system_allocator::LockedHeap::new();
 
-pub use interrupts::apic::LAPIC;
-pub use interrupts::apic::PROCESSOR_ID;
+pub mod cpu_locals {
+    pub use super::interrupts::apic::LAPIC;
+    pub use super::interrupts::apic::PROCESSOR_ID;
+
+    // #[thread_local]
+    // pub static PAGE_TABLE: ::moondust_utils::sync::mutex::Mutex<>
+}

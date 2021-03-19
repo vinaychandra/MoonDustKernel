@@ -125,8 +125,4 @@ impl<'a> IMemoryMapper for OffsetPageTable<'a> {
         let phys_addr = self.translate_addr(virt_addr)?;
         Some(phys_addr.as_u64() as *const ())
     }
-
-    fn get_page_table(&self) -> *const u8 {
-        todo!()
-    }
 }

@@ -21,10 +21,13 @@
 #![feature(thread_local)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
+use arch::{globals, process::Thread};
+use common::ramdisk::{elf_loader::DefaultElfLoader, ustar::UStarArchive};
 use core::{
     panic::PanicInfo,
     sync::atomic::{AtomicUsize, Ordering},
 };
+use elfloader::ElfBinary;
 use logging::UnifiedLogger;
 use moondust_utils::executor::priority_executor::PriorityExecutor;
 
@@ -102,4 +105,24 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     panic!("allocation error: {:?}", layout)
 }
 
-fn load_alpha() {}
+fn load_alpha() {
+    let mut process = Thread::new_empty_process();
+    process.activate();
+
+    let ramdisk: UStarArchive;
+    unsafe {
+        let initrd_ptr =
+            (bootboot::bootboot.initrd_ptr + globals::MEM_MAP_OFFSET_LOCATION) as *const u8;
+        ramdisk = UStarArchive::new(initrd_ptr, bootboot::bootboot.initrd_size as usize);
+        info!(target: "load_alpha", "Initrd image is {}", ramdisk);
+    }
+
+    let file_name = "./userspace/moondust-alpha";
+    let file = ramdisk.lookup(file_name).expect("Alpha file not found");
+    let binary = ElfBinary::new("moondust-alpha", file).expect("Cannot read the binary");
+
+    let mut mapper = process.get_mapper();
+    let mut loader = DefaultElfLoader::new(0x0, &mut mapper);
+    binary.load(&mut loader).expect("Binary loading failed");
+    info!(target: "load_alpha", "Alpha project loaded.");
+}
