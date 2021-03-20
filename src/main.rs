@@ -106,8 +106,7 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
 }
 
 fn load_alpha() {
-    let mut process = Thread::new_empty_process();
-    process.activate();
+    let thread = Thread::new_empty_process();
 
     let ramdisk: UStarArchive;
     unsafe {
@@ -121,7 +120,11 @@ fn load_alpha() {
     let file = ramdisk.lookup(file_name).expect("Alpha file not found");
     let binary = ElfBinary::new("moondust-alpha", file).expect("Cannot read the binary");
 
-    let mut mapper = process.get_mapper();
+    let mut pt = thread
+        .get_page_table()
+        .try_lock()
+        .expect("Pagetable is locked");
+    let mut mapper = (&mut pt).get_mapper();
     let mut loader = DefaultElfLoader::new(0x0, &mut mapper);
     binary.load(&mut loader).expect("Binary loading failed");
     info!(target: "load_alpha", "Alpha project loaded.");

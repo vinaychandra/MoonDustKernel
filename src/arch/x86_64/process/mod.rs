@@ -7,8 +7,8 @@ use core::{
 use alloc::{sync::Arc, task::Wake};
 use futures_lite::{pin, Future};
 
-mod process_struct;
-pub use process_struct::*;
+mod thread;
+pub use thread::*;
 
 static SHOULD_WAKE: AtomicBool = AtomicBool::new(false);
 

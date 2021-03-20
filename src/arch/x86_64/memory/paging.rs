@@ -1,4 +1,6 @@
+use alloc::boxed::Box;
 use x86_64::{
+    registers::control::Cr3,
     structures::paging::{
         page::PageRange, FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags,
         PhysFrame, Size4KiB, Translate,
@@ -11,14 +13,32 @@ use crate::{
     common::memory::paging::{IMemoryMapper, MapperPermissions},
 };
 
+#[derive(Debug)]
 pub struct KernelPageTable {
-    page_table: PageTable,
+    page_table: Box<PageTable>,
 }
 
 impl KernelPageTable {
+    pub fn new(page_table: Box<PageTable>) -> Self {
+        Self { page_table }
+    }
+
     pub fn get_mapper(&mut self) -> impl IMemoryMapper + '_ {
         let offset = VirtAddr::new(globals::MEM_MAP_OFFSET_LOCATION);
         unsafe { OffsetPageTable::new(&mut self.page_table, offset) }
+    }
+
+    pub fn activate(&mut self) {
+        let pt_vaddr = self.page_table.as_ref() as *const PageTable as *const ();
+        let opt = self.get_mapper();
+        let phys = opt
+            .virt_to_phys(pt_vaddr)
+            .expect("Cannot find phys mapping");
+        let frame = PhysFrame::from_start_address(PhysAddr::new(phys as u64)).unwrap();
+        let (_, flags) = Cr3::read();
+        unsafe {
+            Cr3::write(frame, flags);
+        }
     }
 }
 

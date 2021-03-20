@@ -29,7 +29,7 @@ where
         }
     }
 
-    /// Spawns a task with the given priority.
+    /// Spawns a task with the given priority. Lower numbers have better priority.
     pub fn spawn<T: Send + 'a>(
         &self,
         priority: usize,

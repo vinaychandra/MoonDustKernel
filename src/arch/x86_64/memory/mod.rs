@@ -2,13 +2,9 @@ pub mod cpu_local;
 pub mod frame_allocator;
 pub mod paging;
 
-use x86_64::{
-    structures::paging::{OffsetPageTable, PageTable},
-    VirtAddr,
-};
+use x86_64::{structures::paging::PageTable, VirtAddr};
 
 use super::globals;
-use crate::common::memory::paging::IMemoryMapper;
 
 /// Returns a mutable reference to the active level 4 table.
 ///
@@ -36,10 +32,4 @@ pub unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static
 /// to avoid aliasing `&mut` references (which is undefined behavior).
 pub unsafe fn active_level_4_table_default() -> &'static mut PageTable {
     unsafe { active_level_4_table(VirtAddr::new(globals::MEM_MAP_OFFSET_LOCATION)) }
-}
-
-/// Get the offsetpagetable for the default setup.
-pub unsafe fn active_mapper_default() -> impl IMemoryMapper {
-    let pt = unsafe { active_level_4_table_default() };
-    unsafe { OffsetPageTable::new(pt, VirtAddr::new(globals::MEM_MAP_OFFSET_LOCATION)) }
 }

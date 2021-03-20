@@ -33,5 +33,6 @@ pub mod cpu_locals {
     use super::memory::paging::KernelPageTable;
 
     #[thread_local]
-    pub static PAGE_TABLE: RefCell<Option<Arc<Mutex<KernelPageTable>>>> = RefCell::new(None);
+    pub static CURRENT_PAGE_TABLE: RefCell<Option<Arc<Mutex<KernelPageTable>>>> =
+        RefCell::new(None);
 }
