@@ -109,6 +109,7 @@ async fn load_alpha() {
     const STACK_SIZE: usize = 10 * 4096 * 1024;
     let mut thread =
         Thread::new_empty_process(1, 0x6FFF_FFFF_FFFF - STACK_SIZE as u64 + 1, STACK_SIZE).await;
+    thread.activate().await;
 
     let ramdisk: UStarArchive;
     unsafe {

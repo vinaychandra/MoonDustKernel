@@ -158,7 +158,7 @@ extern "x86-interrupt" fn page_fault_handler(
     use x86_64::registers::control::Cr2;
     error!(
         target: "PageFaultHandler",
-        "EXCEPTION: PAGE FAULT\n{:#?}\nError Code: {:?}\nAccessed Address: {:?}",
+        "EXCEPTION: PAGE FAULT\r\n{:#?}\r\nError Code: {:?}\r\nAccessed Address: {:?}",
         stack_frame,
         error_code,
         Cr2::read()

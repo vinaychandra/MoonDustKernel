@@ -29,6 +29,7 @@ impl Thread {
                         info: SysretInfo::NoVal,
                     }),
                 };
+                cx.waker().wake_by_ref();
                 return Poll::Pending;
             }
         }
