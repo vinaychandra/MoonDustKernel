@@ -79,7 +79,7 @@ fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll
         _ => {}
     }
 
-    let mut regs: Registers = Default::default();
+    let regs: Registers;
     let syscall: SyscallInfo;
     unsafe {
         let retrieved_syscall: *const SyscallInfo;
@@ -87,11 +87,12 @@ fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll
             "user_future_resume_point:
             nop
             ",
-            out("rax") _, out("rbx") _, out("rcx") regs.rip, out("rdx") regs.rbp, out("rsi") regs.rsp,
+            out("rax") _, out("rbx") _, out("rcx") _, out("rdx") _, out("rsi") _,
             out("rdi") retrieved_syscall, out("r8") _, out("r9") _, out("r10") _, out("r11") _, out("r12") _,
             out("r13") _, out("r14") _, out("r15") _,
         );
         syscall = (&*retrieved_syscall).clone();
+        regs = REGISTERS.take().expect("Expected REGISTERS after sysret");
     }
 
     // User's syscall reaches here. Now process it.
@@ -132,6 +133,9 @@ unsafe extern "C" fn syscall_entry_fn(
     }
 }
 
+#[thread_local]
+static mut REGISTERS: Option<Registers> = None;
+
 unsafe extern "C" fn syscall_entry_fn_2(
     info: *const SyscallInfo,
     user_rsp: *const (),
@@ -139,14 +143,32 @@ unsafe extern "C" fn syscall_entry_fn_2(
     user_stored_ip: *const (),
 ) {
     unsafe {
+        let rbx: u64;
+        let r12: u64;
+        let r13: u64;
+        let r14: u64;
+        let r15: u64;
+        asm!("nop", 
+            out("rbx") rbx, out("r12") r12, out("r13") r13,
+            out("r14") r14, out("r15") r15);
+
+        let mut regs = Registers::new();
+        regs.rsp = user_rsp as u64;
+        regs.rbp = user_rbp as u64;
+        regs.rip = user_stored_ip as u64;
+        regs.rbx = rbx;
+        regs.r12 = r12;
+        regs.r13 = r13;
+        regs.r14 = r14;
+        regs.r15 = r15;
+        REGISTERS = Some(regs);
+
         let (rsp, rbp) = TRAMPOLINE_1_RSP_RBP;
         asm!(
             "
             mov rbp, {1}
             mov rsp, {0}
             jmp user_future_resume_point
-        ", in(reg) rsp, in(reg) rbp,  in("rdi") info, in("rsi") user_rsp,
-        in("rdx") user_rbp, in("rcx") user_stored_ip
-        );
+        ", in(reg) rsp, in(reg) rbp,  in("rdi") info);
     }
 }

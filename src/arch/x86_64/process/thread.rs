@@ -88,6 +88,7 @@ impl Thread {
         let mut pt = self.page_table.lock().await;
 
         ::x86_64::instructions::interrupts::without_interrupts(|| {
+            // This will also prevent the page table from being dropped.
             pt.activate();
             crate::arch::cpu_locals::CURRENT_PAGE_TABLE.replace(Some(self.page_table.clone()));
         });

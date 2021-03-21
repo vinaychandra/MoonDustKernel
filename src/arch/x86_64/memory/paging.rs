@@ -42,6 +42,12 @@ impl KernelPageTable {
     }
 }
 
+impl Drop for KernelPageTable {
+    fn drop(&mut self) {
+        info!("dropping kpt");
+    }
+}
+
 impl<'a> IMemoryMapper for OffsetPageTable<'a> {
     fn map(
         &mut self,

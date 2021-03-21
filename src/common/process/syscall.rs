@@ -18,7 +18,10 @@ impl Thread {
         registers: Registers,
     ) -> Poll<u8> {
         match syscall {
-            SyscallInfo::Exit { val } => return Poll::Ready(val),
+            SyscallInfo::Exit { val } => {
+                info!("Thread with id {} exited with code {}", self.thread_id, val);
+                return Poll::Ready(val);
+            }
             SyscallInfo::Test { val } => {
                 info!("Test syscall with val {}", val);
                 self.state = ThreadState::Syscall {
