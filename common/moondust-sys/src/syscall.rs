@@ -2,7 +2,7 @@
 #[repr(C)]
 pub enum SyscallInfo {
     Exit { val: u8 },
-    Test { val: u8 },
+    Debug { ptr: u64, len: u64 },
 }
 
 #[derive(Debug, Clone)]

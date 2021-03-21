@@ -112,7 +112,7 @@ impl<'a> ElfLoader for DefaultElfLoader<'a> {
             TypeRela64::R_RELATIVE => {
                 // This is a relative relocation, add the offset (where we put our
                 // binary in the vspace) to the addend and we're done.
-                info!(target:"elf",
+                debug!(target:"elf",
                     "R_RELATIVE *{:p} = {:#x}",
                     target_vaddr,
                     self.vbase + entry.get_addend()

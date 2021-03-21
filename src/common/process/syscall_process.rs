@@ -17,13 +17,16 @@ impl Thread {
         syscall: SyscallInfo,
         registers: Registers,
     ) -> Poll<u8> {
+        // TODO: sanitize/verify
         match syscall {
             SyscallInfo::Exit { val } => {
                 info!("Thread with id {} exited with code {}", self.thread_id, val);
                 return Poll::Ready(val);
             }
-            SyscallInfo::Test { val } => {
-                info!("Test syscall with val {}", val);
+            SyscallInfo::Debug { ptr, len } => {
+                let slice = unsafe { core::slice::from_raw_parts(ptr as *const u8, len as usize) };
+                let s = core::str::from_utf8(slice).expect("//TODO! NOT A STR");
+                info!("Test syscall with val {}", s);
                 self.state = ThreadState::Syscall {
                     registers,
                     syscall_info: Some(syscall),
