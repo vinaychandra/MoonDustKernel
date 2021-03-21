@@ -12,6 +12,14 @@ use super::{
     Thread,
 };
 
+impl Future for Thread {
+    type Output = u8;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        user_switching_fn(self, cx)
+    }
+}
+
 fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll<u8> {
     // TODO: Activate thread?
     unsafe {
@@ -46,13 +54,14 @@ fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll
                         match info {
                             SysretInfo::NoVal => unsafe {
                                 asm!("
+                                        cli
                                         mov rsp, rdi
                                         mov rbp, rsi
                                         sysretq
                                     ", in("rdi") registers.rsp, in("rsi") registers.rbp, in("rax") registers.rax,
                                     in("rbx") registers.rbx, in("rcx") registers.rip, in("rdx") registers.rdx,
                                     in("r8") registers.r8, in("r9") registers.r9, in("r10") registers.r10,
-                                    in("r11") registers.r11, in("r12") registers.r12, in("r13") registers.r13,
+                                    in("r11") registers.rflags, in("r12") registers.r12, in("r13") registers.r13,
                                     in("r14") registers.r14, in("r15") registers.r15);
                             },
                         }
@@ -65,13 +74,14 @@ fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll
                 // optimize out the remaning statements.
                 unsafe {
                     asm!("
+                        cli
                         mov rsp, rdi
                         mov rbp, rsi
                         sysretq
                     ", in("rdi") registers.rsp, in("rsi") registers.rbp, in("rax") registers.rax,
                     in("rbx") registers.rbx, in("rcx") registers.rip, in("rdx") registers.rdx,
                     in("r8") registers.r8, in("r9") registers.r9, in("r10") registers.r10,
-                    in("r11") registers.r11, in("r12") registers.r12, in("r13") registers.r13,
+                    in("r11") registers.rflags, in("r12") registers.r12, in("r13") registers.r13,
                     in("r14") registers.r14, in("r15") registers.r15);
                 }
             }
@@ -86,6 +96,7 @@ fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll
         asm!(
             "user_future_resume_point:
             nop
+            sti
             ",
             out("rax") _, out("rbx") _, out("rcx") _, out("rdx") _, out("rsi") _,
             out("rdi") retrieved_syscall, out("r8") _, out("r9") _, out("r10") _, out("r11") _, out("r12") _,
@@ -97,14 +108,6 @@ fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll
 
     // User's syscall reaches here. Now process it.
     return thread.process_syscall(cx, syscall, regs);
-}
-
-impl Future for Thread {
-    type Output = u8;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        user_switching_fn(self, cx)
-    }
 }
 
 #[thread_local]
@@ -148,9 +151,10 @@ unsafe extern "C" fn syscall_entry_fn_2(
         let r13: u64;
         let r14: u64;
         let r15: u64;
+        let rflags: u64;
         asm!("nop", 
             out("rbx") rbx, out("r12") r12, out("r13") r13,
-            out("r14") r14, out("r15") r15);
+            out("r14") r14, out("r15") r15, out("r11") rflags);
 
         let mut regs = Registers::new();
         regs.rsp = user_rsp as u64;
@@ -161,6 +165,7 @@ unsafe extern "C" fn syscall_entry_fn_2(
         regs.r13 = r13;
         regs.r14 = r14;
         regs.r15 = r15;
+        regs.rflags = rflags;
         REGISTERS = Some(regs);
 
         let (rsp, rbp) = TRAMPOLINE_1_RSP_RBP;

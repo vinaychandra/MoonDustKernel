@@ -3,6 +3,7 @@ use x86_64::{
         segmentation::{load_ss, set_cs},
         tables::load_tss,
     },
+    registers::rflags::RFlags,
     structures::{
         gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector},
         tss::TaskStateSegment,
@@ -90,6 +91,8 @@ pub fn initialize_gdt() {
             selectors.kernel_data_selector,
         )
         .unwrap();
+
+        x86_64::registers::model_specific::SFMask::write(RFlags::INTERRUPT_FLAG);
 
         GLOBAL_SELECTORS = selectors.clone();
         SELECTORS = selectors;
