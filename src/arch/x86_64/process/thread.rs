@@ -4,9 +4,12 @@ use x86_64::structures::paging::PageTable;
 
 use crate::arch::memory::paging::KernelPageTable;
 
+use super::state::ThreadState;
+
 #[derive(Debug)]
 pub struct Thread {
     page_table: Arc<Mutex<KernelPageTable>>,
+    state: ThreadState,
 }
 
 impl Thread {
@@ -15,6 +18,11 @@ impl Thread {
             page_table: Arc::new(Mutex::new(KernelPageTable::new(
                 Self::create_new_kernel_only_pagetable_from_current(),
             ))),
+            state: ThreadState::Syscall {
+                registers: Default::default(),
+                syscall_info: None,
+                sysret_data: None,
+            },
         }
     }
 

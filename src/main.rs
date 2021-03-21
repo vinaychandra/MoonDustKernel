@@ -107,6 +107,14 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
 
 fn load_alpha() {
     let thread = Thread::new_empty_process();
+    // unsafe {
+    //     let mut a = crate::common::process::syscall::UserFuture::new(
+    //         0,
+    //         &mut *(0u64 as *mut arch::process::state::ThreadState),
+    //     );
+    //     let c = &mut *(0u64 as *mut core::task::Context);
+    //     let _ = a.poll(c);
+    // }
 
     let ramdisk: UStarArchive;
     unsafe {
@@ -128,4 +136,6 @@ fn load_alpha() {
     let mut loader = DefaultElfLoader::new(0x0, &mut mapper);
     binary.load(&mut loader).expect("Binary loading failed");
     info!(target: "load_alpha", "Alpha project loaded.");
+
+    // let entry_point = binary.entry_point() as *const ();
 }

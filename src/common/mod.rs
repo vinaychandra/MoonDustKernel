@@ -1,5 +1,6 @@
 pub mod devices;
 pub mod memory;
+pub mod process;
 pub mod ramdisk;
 
 /// Align value upwards.

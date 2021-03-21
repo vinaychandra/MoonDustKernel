@@ -9,6 +9,8 @@ use futures_lite::{pin, Future};
 
 mod thread;
 pub use thread::*;
+pub mod state;
+pub mod user_future;
 
 static SHOULD_WAKE: AtomicBool = AtomicBool::new(false);
 
