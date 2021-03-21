@@ -7,11 +7,21 @@ use self::common::memory::paging::{IMemoryMapper, MapperPermissions};
 pub struct DefaultElfLoader<'a> {
     vbase: u64,
     mapper: &'a mut dyn IMemoryMapper,
+
+    last_exe_section_location: u64,
 }
 
 impl<'a> DefaultElfLoader<'a> {
     pub fn new(vbase: u64, mapper: &'a mut dyn IMemoryMapper) -> DefaultElfLoader<'a> {
-        DefaultElfLoader { vbase, mapper }
+        DefaultElfLoader {
+            vbase,
+            mapper,
+            last_exe_section_location: 0,
+        }
+    }
+
+    pub fn get_exe_location(&self) -> u64 {
+        self.last_exe_section_location
     }
 }
 
@@ -67,10 +77,14 @@ impl<'a> ElfLoader for DefaultElfLoader<'a> {
     /// Copies `region` into memory starting at `base`.
     /// The caller makes sure that there was an `allocate` call previously
     /// to initialize the region.
-    fn load(&mut self, _flags: Flags, base: VAddr, region: &[u8]) -> Result<(), &'static str> {
+    fn load(&mut self, flags: Flags, base: VAddr, region: &[u8]) -> Result<(), &'static str> {
         let start = self.vbase + base;
         let end = self.vbase + base + region.len() as u64;
         info!(target:"elf", "load region into = {:#x} -- {:#x}", start, end);
+
+        if flags.is_execute() {
+            self.last_exe_section_location = start;
+        }
 
         for i in 0..end - start {
             // Because we load everything in a target mapper rather than the current one, we use the mapper provided

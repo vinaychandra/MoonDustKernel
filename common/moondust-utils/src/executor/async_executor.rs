@@ -27,7 +27,7 @@ use core::future::Future;
 use core::marker::PhantomData;
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use core::task::{Poll, Waker};
-use spin::{Mutex, RwLock};
+use spin::{Mutex, Once, RwLock};
 
 use crate::bounded_segqueue::BoundedSegQueue;
 use async_task::Runnable;
@@ -771,18 +771,12 @@ impl Runner<'_> {
                 let start: usize;
                 {
                     // TODO: Faster random?
-                    // start = fastrand::usize(..n);
-                    static RNG: spin::Once<spin::Mutex<rand_chacha::ChaCha8Rng>> =
-                        spin::Once::new();
-
-                    RNG.call_once(|| {
-                        Mutex::new(
-                            <rand_chacha::ChaCha8Rng as rand::SeedableRng>::seed_from_u64(987),
-                        )
-                    });
-
-                    let chacha: &mut rand_chacha::ChaCha8Rng = &mut RNG.wait().lock();
-                    start = rand::prelude::RngCore::next_u32(chacha) as usize % n;
+                    const SEED: u64 = 0xb5ad4eceda1ce2a9;
+                    static RAND: Once<Mutex<msws::Rand>> = Once::new();
+                    let mut rand = RAND
+                        .call_once(|| Mutex::new(msws::Rand::new(SEED).expect("Invalid seed")))
+                        .lock();
+                    start = rand.rand() as usize % n;
                 }
                 let iter = local_queues
                     .iter()

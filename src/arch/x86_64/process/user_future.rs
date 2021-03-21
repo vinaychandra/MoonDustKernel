@@ -7,11 +7,12 @@ use futures_lite::Future;
 use moondust_sys::syscall::{SyscallInfo, SysretInfo};
 use x86_64::{registers::model_specific::LStar, VirtAddr};
 
-use crate::common::process::syscall::UserFuture;
+use super::{
+    state::{Registers, ThreadState},
+    Thread,
+};
 
-use super::state::{Registers, ThreadState};
-
-impl<'a> Future for UserFuture<'a> {
+impl Future for Thread {
     type Output = u8;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -34,7 +35,7 @@ impl<'a> Future for UserFuture<'a> {
         // TODO: we only need to set this once.
         set_syscall_location(syscall_entry_fn as *const ());
 
-        match &mut self.thread_state {
+        match &mut self.state {
             ThreadState::Running => {
                 panic!("Thread is already in running state!");
             }

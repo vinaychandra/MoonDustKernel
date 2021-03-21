@@ -87,9 +87,9 @@ pub fn main_app() -> ! {
 /// Main Function on bootstrap processor.
 /// This function should not return.
 pub fn main_bsp() -> ! {
-    load_alpha();
-    x86_64::instructions::interrupts::enable();
-    loop {}
+    SCHEDULER.spawn(1, load_alpha()).detach();
+    // x86_64::instructions::interrupts::enable();
+    arch::process::block_on(SCHEDULER.run())
 }
 
 /// This function is called on panic.
@@ -105,16 +105,10 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     panic!("allocation error: {:?}", layout)
 }
 
-fn load_alpha() {
-    let thread = Thread::new_empty_process();
-    // unsafe {
-    //     let mut a = crate::common::process::syscall::UserFuture::new(
-    //         0,
-    //         &mut *(0u64 as *mut arch::process::state::ThreadState),
-    //     );
-    //     let c = &mut *(0u64 as *mut core::task::Context);
-    //     let _ = a.poll(c);
-    // }
+async fn load_alpha() {
+    const STACK_SIZE: usize = 10 * 4096 * 1024;
+    let mut thread =
+        Thread::new_empty_process(1, 0x6FFF_FFFF_FFFF - STACK_SIZE as u64 + 1, STACK_SIZE).await;
 
     let ramdisk: UStarArchive;
     unsafe {
@@ -128,14 +122,17 @@ fn load_alpha() {
     let file = ramdisk.lookup(file_name).expect("Alpha file not found");
     let binary = ElfBinary::new("moondust-alpha", file).expect("Cannot read the binary");
 
-    let mut pt = thread
-        .get_page_table()
-        .try_lock()
-        .expect("Pagetable is locked");
-    let mut mapper = (&mut pt).get_mapper();
-    let mut loader = DefaultElfLoader::new(0x0, &mut mapper);
-    binary.load(&mut loader).expect("Binary loading failed");
-    info!(target: "load_alpha", "Alpha project loaded.");
+    {
+        let mut pt = thread.get_page_table().lock().await;
+        let mut mapper = (&mut pt).get_mapper();
+        let mut loader = DefaultElfLoader::new(0x0, &mut mapper);
+        binary.load(&mut loader).expect("Binary loading failed");
+        info!(target: "load_alpha", 
+            "Alpha project loaded. Use comand `add-symbol-file ../../x86_64-moondust-user/debug/moondust-alpha  0x{:x}`", 
+            loader.get_exe_location());
+    }
 
-    // let entry_point = binary.entry_point() as *const ();
+    let entry_point = binary.entry_point() as *const ();
+    thread.setup_user_ip(entry_point as u64);
+    SCHEDULER.spawn(1, thread).detach();
 }

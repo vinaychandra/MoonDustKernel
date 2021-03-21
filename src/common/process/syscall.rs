@@ -5,21 +5,12 @@ use core::{
 
 use moondust_sys::syscall::{SyscallInfo, SysretInfo};
 
-use crate::arch::process::state::{Registers, SysretWrapper, ThreadState};
+use crate::arch::process::{
+    state::{Registers, SysretWrapper, ThreadState},
+    Thread,
+};
 
-pub struct UserFuture<'a> {
-    pub thread_id: usize,
-    pub thread_state: &'a mut ThreadState,
-}
-
-impl<'a> UserFuture<'a> {
-    pub fn new(thread_id: usize, thread_state: &'a mut ThreadState) -> Self {
-        Self {
-            thread_id,
-            thread_state,
-        }
-    }
-
+impl Thread {
     pub fn process_syscall(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -30,7 +21,7 @@ impl<'a> UserFuture<'a> {
             SyscallInfo::Exit { val } => return Poll::Ready(val),
             SyscallInfo::Test { val } => {
                 info!("Test syscall with val {}", val);
-                *self.thread_state = ThreadState::Syscall {
+                self.state = ThreadState::Syscall {
                     registers,
                     syscall_info: Some(syscall),
                     sysret_data: Some(SysretWrapper {

@@ -40,7 +40,7 @@ where
     }
 
     /// Runs the executor forever.
-    pub async fn run(&self) {
+    pub async fn run(&self) -> ! {
         loop {
             let t0 = self.ex[0].run_n_loops(1);
             let t1 = self.ex[1].run_n_loops(1);
