@@ -1,5 +1,5 @@
 /// The location where all of memory is mapped to.
-pub const MEM_MAP_LOCATION: u64 = 0xFFFF_FF00_0000_0000;
+pub const MEM_MAP_OFFSET_LOCATION: u64 = 0xFFFF_FF00_0000_0000;
 
 /// Size of a page in bytes.
 pub const PAGE_SIZE: usize = 4096;
@@ -7,21 +7,16 @@ pub const PAGE_SIZE: usize = 4096;
 /// Bytes for stack alignment offset.
 pub const STACK_ALIGN: usize = 128;
 
+pub const BSP_STACK_SIZE_BYTES: usize = 4096 * 4;
+
 pub const KERNEL_HEAP_START: usize = 0x_FFFF_FF80_0000_0000;
-pub const KERNEL_HEAP_SIZE_INITIAL: usize = 30 * 1024 * 1024; // 10 MB
-pub const KERNEL_HEAP_SIZE_TOTAL: usize = 10 * 1024 * 1024 * 1024; // 10 GB
+pub const KERNEL_HEAP_SIZE_INITIAL: usize = 30 * 1024 * 1024;
+pub const KERNEL_HEAP_SIZE_TOTAL: usize = 10 * 1024 * 1024 * 1024;
 
-pub const KERNEL_STACK_BSP: usize = 0x_FFFF_FF90_0000_0000;
-pub const KERNEL_STACK_BSP_SIZE: usize = 10 * 1024 * 1024; // 10 MB
-pub const KERNEL_STACK_PRE_ALLOCATED: usize = 10 * 1024 * 1024; // 10 MB
-pub const KERNEL_STACK_PER_PROCESS: usize = 100 * 1024; // 100 KiB
-pub const KERNEL_STACK_TOTAL_SIZE: usize = 10 * 1024 * 1024 * 1024; // 10 GiB
+pub const KERNEL_STACK_START: usize = 0x_FFFF_FF90_0000_1000;
+pub const KERNEL_STACK_MAX_SIZE: usize = 10 * 1024 * 1024;
+pub const KERNEL_STACK_GAP: usize = 0x100_0000;
+pub const KERNEL_STACK_TOTAL_SIZE: usize = 10 * 1024 * 1024 * 1024;
 
-pub const USER_STACK_END: usize = 0x6FFF_FFFF_FFFF;
-pub const USER_STACK_DEFAULT_SIZE: usize = 4 * 1024 * 1024; // 4 MB
-
-// Sizes of a single cell.
-pub const GUI_CELL_WIDTH: u16 = 9;
-pub const GUI_CELL_HEIGHT: u16 = 14;
-pub const GUI_FONT_HEIGHT: f32 = 11.0;
-pub const GUI_FONT_X_SCALE: f32 = 1.3; // Scale in x direction for fonts.
+/// Number of cores to suppoer
+pub const MAX_CORE_COUNT: usize = 512;

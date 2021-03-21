@@ -1,0 +1,22 @@
+[package]
+name = "moondust-utils"
+version = "0.0.4"
+authors = ["Vinay Chandra Dommeti <moondust@vinay.vc>"]
+edition = "2018"
+
+[dependencies]
+spin = "0.8"
+conquer-once = { version = "0.3.2", default-features = false }
+
+# Async Task
+async-task = { version = "4.0.3", default-features = false }
+futures-lite = { version="1.11.2", default-features = false, features = ["alloc"] }
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
+
+# Random
+msws = "0.2.0"
+
+vec-arena = {git = "https://github.com/smol-rs/vec-arena", rev = "0f4e715" }
+crossbeam-queue = { version = "0.3.1", default-features = false, features = ["alloc"] }
+crossbeam-utils = { version = "0.8.3", default-features = false }
+slab = { git = "https://github.com/tokio-rs/slab", rev="d5449b3", default-features = false }

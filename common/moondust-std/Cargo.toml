@@ -1,0 +1,10 @@
+[package]
+name = "moondust-std"
+version = "0.0.1"
+authors = ["Vinay Chandra Dommeti <moondust@vinay.vc>"]
+edition = "2018"
+description = "Standard library for MoonDustKernel"
+
+[dependencies]
+moondust-sys = { path = "../moondust-sys" }
+moondust-utils = { path = "../moondust-utils" }

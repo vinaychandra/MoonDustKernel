@@ -1,4 +1,4 @@
-use log::{Level, Metadata, Record};
+use log::{Metadata, Record};
 use spin::Mutex;
 use uart_16550::SerialPort;
 
@@ -37,15 +37,15 @@ macro_rules! serial_println {
     () => ($crate::serial_print!("\n"));
     ($fmt:expr) => ($crate::serial_print!(concat!($fmt, "\n")));
     ($fmt:expr, $($arg:tt)*) => ($crate::serial_print!(
-        concat!($fmt, "\n"), $($arg)*));
+        concat!($fmt, "\r\n"), $($arg)*));
 }
 
 /// A logger implementation to pass logs into SerialLogging Interface.
 pub struct SerialLogger;
 
 impl log::Log for SerialLogger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= Level::Info
+    fn enabled(&self, _metadata: &Metadata) -> bool {
+        true
     }
 
     fn log(&self, record: &Record) {

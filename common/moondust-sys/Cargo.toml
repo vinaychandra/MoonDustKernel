@@ -1,0 +1,8 @@
+[package]
+name = "moondust-sys"
+version = "0.0.1"
+authors = ["Vinay Chandra Dommeti <moondust@vinay.vc>"]
+edition = "2018"
+description = "System level crate for MoonDustKernel"
+
+[dependencies]

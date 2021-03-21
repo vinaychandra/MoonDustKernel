@@ -33,6 +33,11 @@ SECTIONS
         . = ALIGN(4096);
     } :boot
 
+    .got : {
+        *(.got*)
+        . = ALIGN(4096);
+    } :boot
+
     .tdata : {
         __tdata_start = .;
         *(.tdata*)

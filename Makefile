@@ -11,9 +11,9 @@ endif
 KERNEL_SOURCES := $(shell find ./src -name '*.rs')
 USERSPACE := $(wildcard ./userspace/*)
 
-.PHONY: userspace
+.PHONY: userspace target/$(PLATFORM)-moondust/debug/moondust-kernel
 
-all: userspace target/$(PLATFORM)-moondust/debug/moondust-kernel
+all: target/disk-$(PLATFORM).img
 run: efi
 
 # Generate bindings for bootboot. (Converts *.h files to rust bindings)
@@ -42,10 +42,13 @@ check-image: target/$(PLATFORM)-moondust/debug/moondust-kernel
 	./others/bootboot/mkbootimg-${HOST} check $^
 
 efi: target/disk-$(PLATFORM).img
-	qemu-system-x86_64 -bios $(OVMF) -m 128 -drive file=./target/disk-x86_64.img,format=raw -serial stdio
+	qemu-system-x86_64 -bios $(OVMF) -m 128 -drive file=./target/disk-x86_64.img,format=raw -serial stdio -smp 2 -no-shutdown -no-reboot
+
+efi-monitor: target/disk-$(PLATFORM).img
+	qemu-system-x86_64 -bios $(OVMF) -m 128 -drive file=./target/disk-x86_64.img,format=raw -monitor stdio -serial vc -smp 2
 
 efi-wait: target/disk-$(PLATFORM).img
-	qemu-system-x86_64 -bios $(OVMF) -m 128 -drive file=./target/disk-x86_64.img,format=raw -serial stdio -s -S
+	qemu-system-x86_64 -bios $(OVMF) -m 128 -drive file=./target/disk-x86_64.img,format=raw -serial vc -s -S -smp 2
 
 clean:
 	rm -rf ./target

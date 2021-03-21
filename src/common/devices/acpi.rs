@@ -4,7 +4,7 @@ use acpi::{AcpiHandler, PhysicalMapping};
 
 /// Memory handler used by ACPI to access mapping
 /// regions of physical memory.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct MemoryHandler {
     /// The location where all of physical memory is mapped to.
     phys_mem_offset: usize,
@@ -30,7 +30,7 @@ impl AcpiHandler for MemoryHandler {
             virtual_start: NonNull::new(target_virtual_address as *mut T).unwrap(),
             region_length: size,
             mapped_length: size,
-            handler: *self,
+            handler: self.clone(),
         }
     }
 

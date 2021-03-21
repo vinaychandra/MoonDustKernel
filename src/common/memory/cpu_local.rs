@@ -15,7 +15,8 @@ use core::ptr;
 /// - `total_size`: The total number of bytes that the TLS segment should have in memory.
 ///         Generally corresponds to the combined length of the `.tdata` and `.tbss` sections.
 /// # Returns
-/// Virtual address of the target pointer. The data will be of size `total_size`
+/// Virtual address of the target pointer. The data will be of size `total_size`. The `tdata`
+/// will be in the first required bytes of the returned array.
 pub unsafe fn load_tls_data(
     start_addr: *const u8,
     tdata_size: usize,
@@ -23,12 +24,14 @@ pub unsafe fn load_tls_data(
 ) -> *mut [u8] {
     // We add 8 bytes to have storage to store fs pointer.
     let mut values = Box::<[u8]>::new_uninit_slice(total_size);
-    ptr::copy(start_addr, values.as_mut_ptr() as *mut u8, tdata_size);
-    ptr::write_bytes(
-        ((values.as_mut_ptr() as usize) + tdata_size) as *mut u8,
-        0,
-        total_size - tdata_size,
-    );
-    let final_val = values.assume_init();
-    Box::into_raw(final_val)
+    unsafe {
+        ptr::copy(start_addr, values.as_mut_ptr() as *mut u8, tdata_size);
+        ptr::write_bytes(
+            ((values.as_mut_ptr() as usize) + tdata_size) as *mut u8,
+            0,
+            total_size - tdata_size,
+        );
+        let final_val = values.assume_init();
+        Box::into_raw(final_val)
+    }
 }

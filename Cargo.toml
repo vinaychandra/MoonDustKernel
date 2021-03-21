@@ -1,55 +1,32 @@
 [package]
 name = "moondust-kernel"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Vinay Chandra Dommeti <moondust@vinay.vc>"]
 edition = "2018"
 
 [dependencies]
-crossbeam-queue = { git = "https://github.com/crossbeam-rs/crossbeam.git", rev = "03ba964", default-features = false, features = ["alloc"] }
-conquer-once = { version = "0.2", default-features = false }
-lazy_static = { version = "1", features = ["spin_no_std"] }
-linked_list_allocator = "0.8.6"
-log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
-spin = "0.7"
 bitflags = "1.2"
-bitfield = "0.13"
-elfloader = "0.11"
-xmas-elf = "0.7"
-num-traits = { version = "0.2", default-features = false, features = ["libm"] }
-
-# Time types
-chrono = { version = "0.4.19", default-features = false, features = ["alloc"] }
-
-# Text UI 
-tui = { git = "https://github.com/vinaychandra/tui-rs", branch = "no_std" }
-
-# RustType font support
-rusttype = { version = "0.9", default-features = false, features = ["libm-math", "has-atomics"] }
-libm = { version = "0.2.1", default-features = false }
-
-# ACPI
+const_fn_assert = "0.1"
+lazy_static = { version = "1", features = ["spin_no_std"] }
+log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
+spin = "0.8"
+linked_list_allocator = "0.8"
 acpi = "2.0.0"
-
-# Async Task
-async-task = { version = "4.0.3", default-features = false }
+crossbeam-queue = { version = "0.3.1", default-features = false, features = ["alloc"] }
 futures-lite = { version="1.11.2", default-features = false, features = ["alloc"] }
-futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
 
-# Random
-rand = {version = "0.7.3", default-features = false}
-rand_chacha = {version = "0.2.2", default-features = false}
+# ELF
+elfloader = "0.11"
 
-# Keyboard
-pc-keyboard = "0.5.1"
-
-# Common
-mlibc = { path="others/mlibc" }
+moondust-utils = {path = "./common/moondust-utils" }
+moondust-sys = {path = "./common/moondust-sys" }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 uart_16550 = "0.2.10"
 x86_64 = "0.13.2"
-cmos = "0.1.2"
+apic = { git="https://github.com/rust-osdev/apic", rev="c662e70" }
+pc-keyboard = "0.5.1"
 
 [workspace]
-members = [ "userspace/sigma_space", "others/mlibc" ]
+members = [ "userspace/moondust-alpha" ]
 default-members = [ ]
