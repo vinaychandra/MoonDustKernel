@@ -1,4 +1,4 @@
-use alloc::rc::Rc;
+use alloc::sync::Arc;
 use core::ops::Bound::*;
 use core::{
     cmp::{Ord, Ordering},
@@ -30,7 +30,7 @@ pub fn low_bound_cmp<T: Ord>(a: &Bound<T>, b: &Bound<T>) -> Ordering {
     }
 }
 
-pub fn low_bound_min<T: Ord + Clone>(a: &Rc<Bound<T>>, b: &Rc<Bound<T>>) -> Rc<Bound<T>> {
+pub fn low_bound_min<T: Ord + Clone>(a: &Arc<Bound<T>>, b: &Arc<Bound<T>>) -> Arc<Bound<T>> {
     match low_bound_cmp(&*a, &*b) {
         Ordering::Less => a.clone(),
         _ => b.clone(),
@@ -61,7 +61,7 @@ pub fn high_bound_cmp<T: Ord + Clone>(a: &Bound<T>, b: &Bound<T>) -> Ordering {
     }
 }
 
-pub fn high_bound_max<T: Ord + Clone>(a: &Rc<Bound<T>>, b: &Rc<Bound<T>>) -> Rc<Bound<T>> {
+pub fn high_bound_max<T: Ord + Clone>(a: &Arc<Bound<T>>, b: &Arc<Bound<T>>) -> Arc<Bound<T>> {
     match high_bound_cmp(&*a, &*b) {
         Ordering::Less => b.clone(),
         _ => a.clone(),
@@ -71,8 +71,8 @@ pub fn high_bound_max<T: Ord + Clone>(a: &Rc<Bound<T>>, b: &Rc<Bound<T>>) -> Rc<
 /// A data structure for representing intervals
 #[derive(Debug, Clone, Hash)]
 pub struct Interval<T: Ord + Clone> {
-    pub(crate) low: Rc<Bound<T>>,
-    pub(crate) high: Rc<Bound<T>>,
+    pub(crate) low: Arc<Bound<T>>,
+    pub(crate) high: Arc<Bound<T>>,
 }
 
 impl<T: Ord + Clone> Interval<T> {
@@ -86,8 +86,8 @@ impl<T: Ord + Clone> Interval<T> {
     /// ```
     pub fn new(low: Bound<T>, high: Bound<T>) -> Interval<T> {
         Interval {
-            low: Rc::new(low),
-            high: Rc::new(high),
+            low: Arc::new(low),
+            high: Arc::new(high),
         }
     }
 

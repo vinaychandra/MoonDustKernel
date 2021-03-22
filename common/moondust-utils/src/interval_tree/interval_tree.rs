@@ -34,7 +34,7 @@
  * );
  * ```
 */
-use alloc::rc::Rc;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::cmp::*;
 use core::ops::Bound;
@@ -42,21 +42,21 @@ use core::ops::Bound::*;
 
 use super::interval::*;
 
-#[derive(Clone, Hash)]
+#[derive(Debug, Clone, Hash)]
 struct Node<T: Ord + Clone> {
     interval: Interval<T>,
-    left: Option<Rc<Node<T>>>,
-    right: Option<Rc<Node<T>>>,
+    left: Option<Arc<Node<T>>>,
+    right: Option<Arc<Node<T>>>,
     height: usize,
-    max: Rc<Bound<T>>,
-    min: Rc<Bound<T>>,
+    max: Arc<Bound<T>>,
+    min: Arc<Bound<T>>,
 }
 
 impl<T: Ord + Clone> Node<T> {
     fn new(
         interval: Interval<T>,
-        left: Option<Rc<Node<T>>>,
-        right: Option<Rc<Node<T>>>,
+        left: Option<Arc<Node<T>>>,
+        right: Option<Arc<Node<T>>>,
     ) -> Node<T> {
         let height = usize::max(Self::height(&left), Self::height(&right)) + 1;
         let max = Self::get_max(&interval, &left, &right);
@@ -75,7 +75,7 @@ impl<T: Ord + Clone> Node<T> {
         Node::new(interval, None, None)
     }
 
-    fn height(node: &Option<Rc<Node<T>>>) -> usize {
+    fn height(node: &Option<Arc<Node<T>>>) -> usize {
         match node {
             None => 0,
             Some(n) => n.height,
@@ -84,9 +84,9 @@ impl<T: Ord + Clone> Node<T> {
 
     fn get_max(
         interval: &Interval<T>,
-        left: &Option<Rc<Node<T>>>,
-        right: &Option<Rc<Node<T>>>,
-    ) -> Rc<Bound<T>> {
+        left: &Option<Arc<Node<T>>>,
+        right: &Option<Arc<Node<T>>>,
+    ) -> Arc<Bound<T>> {
         let mid = &interval.high;
         match (left, right) {
             (None, None) => mid.clone(),
@@ -98,9 +98,9 @@ impl<T: Ord + Clone> Node<T> {
 
     fn get_min(
         interval: &Interval<T>,
-        left: &Option<Rc<Node<T>>>,
-        right: &Option<Rc<Node<T>>>,
-    ) -> Rc<Bound<T>> {
+        left: &Option<Arc<Node<T>>>,
+        right: &Option<Arc<Node<T>>>,
+    ) -> Arc<Bound<T>> {
         let mid = &interval.low;
         match (left, right) {
             (None, None) => mid.clone(),
@@ -122,7 +122,7 @@ impl<T: Ord + Clone> Node<T> {
             };
             Node::new(
                 self.interval.clone(),
-                Some(Rc::new(insert_left)),
+                Some(Arc::new(insert_left)),
                 self.right.clone(),
             )
         } else if &interval > &self.interval {
@@ -133,7 +133,7 @@ impl<T: Ord + Clone> Node<T> {
             Node::new(
                 self.interval.clone(),
                 self.left.clone(),
-                Some(Rc::new(insert_right)),
+                Some(Arc::new(insert_right)),
             )
         } else {
             self.clone()
@@ -148,7 +148,7 @@ impl<T: Ord + Clone> Node<T> {
         }
     }
 
-    fn remove(&self, interval: &Interval<T>) -> Option<Rc<Self>> {
+    fn remove(&self, interval: &Interval<T>) -> Option<Arc<Self>> {
         let res = if interval == &self.interval {
             match (&self.left, &self.right) {
                 (None, None) => None,
@@ -161,44 +161,44 @@ impl<T: Ord + Clone> Node<T> {
                         self.left.clone(),
                         right_tree.remove(&successor),
                     );
-                    Some(Rc::new(new_node))
+                    Some(Arc::new(new_node))
                 }
             }
         } else if interval < &self.interval {
             match &self.left {
-                None => Some(Rc::new(self.clone())),
-                Some(left_tree) => Some(Rc::new(self.replace_left(left_tree.remove(interval)))),
+                None => Some(Arc::new(self.clone())),
+                Some(left_tree) => Some(Arc::new(self.replace_left(left_tree.remove(interval)))),
             }
         } else {
             match &self.right {
-                None => Some(Rc::new(self.clone())),
-                Some(right_tree) => Some(Rc::new(self.replace_right(right_tree.remove(interval)))),
+                None => Some(Arc::new(self.clone())),
+                Some(right_tree) => Some(Arc::new(self.replace_right(right_tree.remove(interval)))),
             }
         };
         match res {
             None => None,
-            Some(r) => Some(Rc::new(r.balance())),
+            Some(r) => Some(Arc::new(r.balance())),
         }
     }
 
-    fn replace_left(&self, new_left: Option<Rc<Node<T>>>) -> Node<T> {
+    fn replace_left(&self, new_left: Option<Arc<Node<T>>>) -> Node<T> {
         Self::new(self.interval.clone(), new_left, self.right.clone())
     }
 
-    fn replace_right(&self, new_right: Option<Rc<Node<T>>>) -> Node<T> {
+    fn replace_right(&self, new_right: Option<Arc<Node<T>>>) -> Node<T> {
         Self::new(self.interval.clone(), self.left.clone(), new_right)
     }
 
     fn rotate_right(&self) -> Self {
         let pivot = self.left.as_ref().unwrap();
         let new_right = self.replace_left(pivot.right.clone());
-        pivot.replace_right(Some(Rc::new(new_right)))
+        pivot.replace_right(Some(Arc::new(new_right)))
     }
 
     fn rotate_left(&self) -> Self {
         let pivot = self.right.as_ref().unwrap();
         let new_left = self.replace_right(pivot.left.clone());
-        pivot.replace_left(Some(Rc::new(new_left)))
+        pivot.replace_left(Some(Arc::new(new_left)))
     }
 
     fn balance(&self) -> Self {
@@ -206,7 +206,7 @@ impl<T: Ord + Clone> Node<T> {
         if balance_factor < -1 {
             let right = self.right.as_ref().unwrap();
             if right.balance_factor() > 0 {
-                self.replace_right(Some(Rc::new(right.rotate_right())))
+                self.replace_right(Some(Arc::new(right.rotate_right())))
                     .rotate_left()
             } else {
                 self.rotate_left()
@@ -214,7 +214,7 @@ impl<T: Ord + Clone> Node<T> {
         } else if balance_factor > 1 {
             let left = self.left.as_ref().unwrap();
             if left.balance_factor() < 0 {
-                self.replace_left(Some(Rc::new(left.rotate_left())))
+                self.replace_left(Some(Arc::new(left.rotate_left())))
                     .rotate_right()
             } else {
                 self.rotate_right()
@@ -227,7 +227,7 @@ impl<T: Ord + Clone> Node<T> {
 
 /// An Iterator over Intervals matching some query
 pub struct Iter<T: Ord + Clone> {
-    stack: Vec<Rc<Node<T>>>,
+    stack: Vec<Arc<Node<T>>>,
     query: Interval<T>,
 }
 
@@ -301,9 +301,9 @@ impl<T: Ord + Clone> Iterator for Iter<T> {
 ///     ]
 /// );
 /// ```
-#[derive(Clone, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub struct IntervalTree<T: Ord + Clone> {
-    root: Option<Rc<Node<T>>>,
+    root: Option<Arc<Node<T>>>,
 }
 
 impl<T: Ord + Clone> IntervalTree<T> {
@@ -331,7 +331,7 @@ impl<T: Ord + Clone> IntervalTree<T> {
             Some(node) => node.insert(interval),
         };
         IntervalTree {
-            root: Some(Rc::new(new_root)),
+            root: Some(Arc::new(new_root)),
         }
     }
 

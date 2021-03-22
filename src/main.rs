@@ -21,7 +21,7 @@
 #![feature(thread_local)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
-use arch::{globals, memory::paging::KernelPageTable, process::Thread};
+use arch::{globals, memory::kernel_page_table::KernelPageTable, process::Thread};
 use common::ramdisk::{elf_loader::DefaultElfLoader, ustar::UStarArchive};
 use core::{
     panic::PanicInfo,
@@ -107,32 +107,42 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
 
 async fn load_alpha() {
     const STACK_SIZE: usize = 10 * 4096 * 1024;
-    let mut thread =
-        Thread::new_empty_process(1, 0x6FFF_FFFF_FFFF - STACK_SIZE as u64 + 1, STACK_SIZE).await;
-    thread.activate().await;
-
-    let ramdisk: UStarArchive;
-    unsafe {
-        let initrd_ptr =
-            (bootboot::bootboot.initrd_ptr + globals::MEM_MAP_OFFSET_LOCATION) as *const u8;
-        ramdisk = UStarArchive::new(initrd_ptr, bootboot::bootboot.initrd_size as usize);
-        info!(target: "load_alpha", "Initrd image is {}", ramdisk);
-    }
-
-    let file_name = "./userspace/moondust-alpha";
-    let file = ramdisk.lookup(file_name).expect("Alpha file not found");
-    let binary = ElfBinary::new("moondust-alpha", file).expect("Cannot read the binary");
-
     {
-        let mut pt = thread.get_page_table().lock().await;
-        let mut loader = DefaultElfLoader::new(0x0, &mut pt as &mut KernelPageTable);
-        binary.load(&mut loader).expect("Binary loading failed");
-        info!(target: "load_alpha", 
+        let mut thread =
+            Thread::new_empty_process(1, 0x6FFF_FFFF_FFFF - STACK_SIZE as u64 + 1, STACK_SIZE)
+                .await;
+        thread.activate().await;
+
+        let ramdisk: UStarArchive;
+        unsafe {
+            let initrd_ptr =
+                (bootboot::bootboot.initrd_ptr + globals::MEM_MAP_OFFSET_LOCATION) as *const u8;
+            ramdisk = UStarArchive::new(initrd_ptr, bootboot::bootboot.initrd_size as usize);
+            info!(target: "load_alpha", "Initrd image is {}", ramdisk);
+        }
+
+        let file_name = "./userspace/moondust-alpha";
+        let file = ramdisk.lookup(file_name).expect("Alpha file not found");
+        let binary = ElfBinary::new("moondust-alpha", file).expect("Cannot read the binary");
+
+        {
+            let mut pt = thread.get_page_table().lock().await;
+            let mut loader = DefaultElfLoader::new(0x0, &mut pt as &mut KernelPageTable);
+            binary.load(&mut loader).expect("Binary loading failed");
+            info!(target: "load_alpha", 
             "Alpha project loaded. Use comand `add-symbol-file ../../x86_64-moondust-user/debug/moondust-alpha  0x{:x}`", 
             loader.get_exe_location());
+        }
+
+        {
+            let entry_point = binary.entry_point() as *const ();
+            thread.setup_user_ip(entry_point as u64);
+        }
+        let result = SCHEDULER.spawn(1, thread).await;
+        info!("Alpha process exited with return status: {}", result);
     }
 
-    let entry_point = binary.entry_point() as *const ();
-    thread.setup_user_ip(entry_point as u64);
-    SCHEDULER.spawn(1, thread).detach();
+    let mut null_thread =
+        Thread::new_empty_process(1, 0x6FFF_FFFF_FFFF - 4096 as u64 + 1, 4096).await;
+    null_thread.activate().await;
 }

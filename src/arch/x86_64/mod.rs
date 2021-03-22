@@ -7,6 +7,7 @@ pub mod process;
 pub mod serial;
 
 use moondust_utils::buddy_system_allocator;
+use x86_64::VirtAddr;
 
 use self::serial::SerialLogger;
 use crate::common::memory::fixed_size_block;
@@ -30,9 +31,17 @@ pub mod cpu_locals {
 
     pub use super::interrupts::apic::LAPIC;
     pub use super::interrupts::apic::PROCESSOR_ID;
-    use super::memory::paging::KernelPageTable;
+    use super::memory::kernel_page_table::KernelPageTable;
 
     #[thread_local]
     pub static CURRENT_PAGE_TABLE: RefCell<Option<Arc<Mutex<KernelPageTable>>>> =
         RefCell::new(None);
+}
+
+pub fn is_kernel_mode(addr: u64) -> bool {
+    if VirtAddr::try_new(addr).is_err() {
+        return false;
+    }
+
+    (addr & (1 << 62)) > 0
 }

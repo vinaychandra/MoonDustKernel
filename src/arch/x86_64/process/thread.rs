@@ -3,7 +3,7 @@ use moondust_utils::sync::mutex::Mutex;
 use x86_64::structures::paging::PageTable;
 
 use crate::arch::globals;
-use crate::arch::memory::paging::KernelPageTable;
+use crate::arch::memory::kernel_page_table::KernelPageTable;
 use crate::common::memory::paging::{IMemoryMapper, MapperPermissions};
 
 use super::state::ThreadState;

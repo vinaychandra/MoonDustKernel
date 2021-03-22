@@ -1,4 +1,11 @@
+use core::{
+    alloc::{Layout, LayoutError},
+    ops::Bound,
+    ptr::NonNull,
+};
+
 use alloc::boxed::Box;
+use moondust_utils::interval_tree::{Interval, IntervalTree};
 use x86_64::{
     registers::control::Cr3,
     structures::paging::{
@@ -16,11 +23,17 @@ use crate::{
 #[derive(Debug)]
 pub struct KernelPageTable {
     page_table: Box<PageTable>,
+    vmem_allocated: usize,
+    mem_areas: IntervalTree<u64>,
 }
 
 impl KernelPageTable {
     pub fn new(page_table: Box<PageTable>) -> Self {
-        Self { page_table }
+        Self {
+            page_table,
+            vmem_allocated: 0,
+            mem_areas: IntervalTree::new(),
+        }
     }
 
     fn get_mapper(&mut self) -> impl IMemoryMapper + '_ {
@@ -50,6 +63,14 @@ impl<'a> IMemoryMapper for KernelPageTable {
         size: usize,
         permissions: MapperPermissions,
     ) -> Result<(), &'static str> {
+        if !crate::arch::is_kernel_mode(virt_addr as u64) {
+            self.vmem_allocated += size;
+            self.mem_areas = self.mem_areas.insert(Interval::new(
+                Bound::Included(virt_addr as u64),
+                Bound::Excluded(virt_addr as u64 + size as u64),
+            ));
+        }
+
         self.get_mapper()
             .map(phys_addr, virt_addr, size, permissions)
     }
@@ -60,11 +81,23 @@ impl<'a> IMemoryMapper for KernelPageTable {
         size: usize,
         permissions: MapperPermissions,
     ) -> Result<(), &'static str> {
+        if !crate::arch::is_kernel_mode(virt_addr as u64) {
+            self.vmem_allocated += size;
+            self.mem_areas = self.mem_areas.insert(Interval::new(
+                Bound::Included(virt_addr as u64),
+                Bound::Excluded(virt_addr as u64 + size as u64),
+            ));
+        }
+
         self.get_mapper()
             .map_with_alloc(virt_addr, size, permissions)
     }
 
     fn unmap_range(&mut self, virt_addr: *const u8, size: usize) -> Result<(), &'static str> {
+        if !crate::arch::is_kernel_mode(virt_addr as u64) {
+            self.vmem_allocated -= size;
+        }
+
         self.get_mapper().unmap_range(virt_addr, size)
     }
 
@@ -75,7 +108,33 @@ impl<'a> IMemoryMapper for KernelPageTable {
 
 impl Drop for KernelPageTable {
     fn drop(&mut self) {
-        info!("dropping kpt");
+        info!(
+            "Dropping PageTable... (Currently allocated {} bytes)",
+            self.vmem_allocated
+        );
+
+        let areas = self.mem_areas.clone();
+        for interval in areas.iter() {
+            let start_val = match interval.low() {
+                Bound::Included(a) => *a,
+                Bound::Excluded(a) => *a + 1,
+                Bound::Unbounded => panic!("Cannot have unbounded interval!"),
+            };
+
+            let end_val = match interval.high() {
+                Bound::Included(a) => *a,
+                Bound::Excluded(a) => *a - 1,
+                Bound::Unbounded => panic!("Cannot have unbounded interval!"),
+            };
+
+            let start = Page::<Size4KiB>::containing_address(VirtAddr::new(start_val));
+            let end = Page::<Size4KiB>::containing_address(VirtAddr::new(end_val));
+            let size = end.start_address() - start.start_address() + 4096;
+
+            self.get_mapper()
+                .unmap_range(start.start_address().as_ptr(), size as usize)
+                .unwrap();
+        }
     }
 }
 
@@ -178,14 +237,22 @@ impl<'a> IMemoryMapper for OffsetPageTable<'a> {
     fn unmap_range(&mut self, virt_addr: *const u8, size: usize) -> Result<(), &'static str> {
         let page_range: PageRange = {
             let start_page = Page::<Size4KiB>::from_start_address(VirtAddr::from_ptr(virt_addr))
-                .expect("start addr is no aligned");
+                .map_err(|_| "start addr is no aligned")?;
             let end_page =
                 Page::<Size4KiB>::from_start_address(VirtAddr::new(virt_addr as u64 + size as u64))
-                    .unwrap();
+                    .map_err(|_| "start addr is no aligned")?;
             Page::range(start_page, end_page)
         };
+        let locked_allocator = &crate::arch::PHYSICAL_MEMORY_ALLOCATOR;
+        let mut allocator = locked_allocator.lock();
         for page in page_range {
-            self.unmap(page).map_or((), |v| v.1.flush());
+            self.unmap(page).map_or((), |frame| {
+                frame.1.flush();
+                let phys_addr = frame.0.start_address();
+                let virt_addr = phys_addr.as_u64() + globals::MEM_MAP_OFFSET_LOCATION;
+                const LAYOUT: Result<Layout, LayoutError> = Layout::from_size_align(4096, 4096);
+                allocator.dealloc(NonNull::new(virt_addr as *mut u8).unwrap(), LAYOUT.unwrap());
+            });
         }
 
         Ok(())

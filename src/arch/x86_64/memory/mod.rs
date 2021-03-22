@@ -1,6 +1,6 @@
 pub mod cpu_local;
 pub mod frame_allocator;
-pub mod paging;
+pub mod kernel_page_table;
 
 use x86_64::{structures::paging::PageTable, VirtAddr};
 
