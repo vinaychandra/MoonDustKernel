@@ -22,7 +22,7 @@ pub trait IMemoryMapper {
     fn unmap_range(&mut self, virt_addr: *const u8, size: usize) -> Result<(), &'static str>;
 
     /// Convert virtual address to physical address.
-    fn virt_to_phys(&self, virt_addr: *const ()) -> Option<*const ()>;
+    fn virt_to_phys(&mut self, virt_addr: *const ()) -> Option<*const ()>;
 }
 
 pub trait IPageTable {

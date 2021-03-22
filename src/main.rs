@@ -21,7 +21,7 @@
 #![feature(thread_local)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
-use arch::{globals, process::Thread};
+use arch::{globals, memory::paging::KernelPageTable, process::Thread};
 use common::ramdisk::{elf_loader::DefaultElfLoader, ustar::UStarArchive};
 use core::{
     panic::PanicInfo,
@@ -125,8 +125,7 @@ async fn load_alpha() {
 
     {
         let mut pt = thread.get_page_table().lock().await;
-        let mut mapper = (&mut pt).get_mapper();
-        let mut loader = DefaultElfLoader::new(0x0, &mut mapper);
+        let mut loader = DefaultElfLoader::new(0x0, &mut pt as &mut KernelPageTable);
         binary.load(&mut loader).expect("Binary loading failed");
         info!(target: "load_alpha", 
             "Alpha project loaded. Use comand `add-symbol-file ../../x86_64-moondust-user/debug/moondust-alpha  0x{:x}`", 

@@ -59,14 +59,12 @@ impl Thread {
         );
 
         let mut kpt = self.page_table.lock().await;
-        let mut mapper = kpt.get_mapper();
-        mapper
-            .map_with_alloc(
-                self.stack_start as *const u8,
-                self.stack_size,
-                MapperPermissions::READ | MapperPermissions::RING_3 | MapperPermissions::WRITE,
-            )
-            .unwrap();
+        kpt.map_with_alloc(
+            self.stack_start as *const u8,
+            self.stack_size,
+            MapperPermissions::READ | MapperPermissions::RING_3 | MapperPermissions::WRITE,
+        )
+        .unwrap();
         if let ThreadState::Syscall {
             registers,
             syscall_info: _,

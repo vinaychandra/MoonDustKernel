@@ -23,14 +23,14 @@ impl KernelPageTable {
         Self { page_table }
     }
 
-    pub fn get_mapper(&mut self) -> impl IMemoryMapper + '_ {
+    fn get_mapper(&mut self) -> impl IMemoryMapper + '_ {
         let offset = VirtAddr::new(globals::MEM_MAP_OFFSET_LOCATION);
         unsafe { OffsetPageTable::new(&mut self.page_table, offset) }
     }
 
     pub fn activate(&mut self) {
         let pt_vaddr = self.page_table.as_ref() as *const PageTable as *const ();
-        let opt = self.get_mapper();
+        let mut opt = self.get_mapper();
         let phys = opt
             .virt_to_phys(pt_vaddr)
             .expect("Cannot find phys mapping");
@@ -39,6 +39,37 @@ impl KernelPageTable {
         unsafe {
             Cr3::write(frame, flags);
         }
+    }
+}
+
+impl<'a> IMemoryMapper for KernelPageTable {
+    fn map(
+        &mut self,
+        phys_addr: *const u8,
+        virt_addr: *const u8,
+        size: usize,
+        permissions: MapperPermissions,
+    ) -> Result<(), &'static str> {
+        self.get_mapper()
+            .map(phys_addr, virt_addr, size, permissions)
+    }
+
+    fn map_with_alloc(
+        &mut self,
+        virt_addr: *const u8,
+        size: usize,
+        permissions: MapperPermissions,
+    ) -> Result<(), &'static str> {
+        self.get_mapper()
+            .map_with_alloc(virt_addr, size, permissions)
+    }
+
+    fn unmap_range(&mut self, virt_addr: *const u8, size: usize) -> Result<(), &'static str> {
+        self.get_mapper().unmap_range(virt_addr, size)
+    }
+
+    fn virt_to_phys(&mut self, virt_addr: *const ()) -> Option<*const ()> {
+        self.get_mapper().virt_to_phys(virt_addr)
     }
 }
 
@@ -160,7 +191,7 @@ impl<'a> IMemoryMapper for OffsetPageTable<'a> {
         Ok(())
     }
 
-    fn virt_to_phys(&self, virt_addr: *const ()) -> Option<*const ()> {
+    fn virt_to_phys(&mut self, virt_addr: *const ()) -> Option<*const ()> {
         let virt_addr = VirtAddr::from_ptr(virt_addr);
         let phys_addr = self.translate_addr(virt_addr)?;
         Some(phys_addr.as_u64() as *const ())
