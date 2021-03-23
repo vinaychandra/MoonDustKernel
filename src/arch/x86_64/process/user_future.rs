@@ -11,6 +11,7 @@ use super::{
     state::{Registers, SyscallState, ThreadState},
     Thread,
 };
+use crate::arch::cpu_locals;
 
 impl Future for Thread {
     type Output = u8;
@@ -22,6 +23,10 @@ impl Future for Thread {
 
 fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll<u8> {
     // TODO: Activate thread?
+    cpu_locals::CURRENT_THREAD_ID.set(thread.thread_id);
+    let thread_id = thread.thread_id;
+
+    debug!(target: "user_future", "[CPU:{}][Thread:{}] Resuming thread", cpu_locals::PROCESSOR_ID.get(), thread_id);
     unsafe {
         {
             // Store the current stack info
@@ -46,6 +51,10 @@ fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll
             // No syscall, we can continue this.
             // Although this is a "noreturn", we do not add the option so that rust doesn't
             // optimize out the remaning statements.
+            debug!(target: "user_future",
+                "[CPU:{}][Thread:{}] Thread state was not started. Starting now.",
+                cpu_locals::PROCESSOR_ID.get(),
+                thread_id);
             unsafe {
                 asm!("
                         cli
@@ -61,9 +70,17 @@ fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll
         }
         ThreadState::Syscall(state) => {
             if !state.return_data_is_ready {
+                debug!(target: "user_future",
+                    "[CPU:{}][Thread:{}] Thread state was syscall but data is not ready.",
+                    cpu_locals::PROCESSOR_ID.get(),
+                    thread_id);
                 return Poll::Pending;
             }
 
+            debug!(target: "user_future",
+                "[CPU:{}][Thread:{}] Thread state was syscall and returning to user.",
+                cpu_locals::PROCESSOR_ID.get(),
+                thread_id);
             let registers = &mut state.registers;
             unsafe {
                 asm!("
@@ -94,6 +111,10 @@ fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll
             out("r13") _, out("r14") _, out("r15") _,
         );
         regs = REGISTERS.take().expect("Expected REGISTERS after sysret");
+        debug!(target: "user_future",
+            "[CPU:{}][Thread:{}] Thread returned from usermode by making a syscall.",
+            cpu_locals::PROCESSOR_ID.get(),
+            thread_id);
         syscall_state = SyscallState {
             registers: regs,
             syscall_info: (*retrieved_syscall).call_info.clone(),

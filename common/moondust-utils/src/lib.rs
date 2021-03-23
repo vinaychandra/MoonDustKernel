@@ -9,5 +9,6 @@ extern crate alloc;
 pub mod bounded_segqueue;
 pub mod buddy_system_allocator;
 pub mod executor;
+pub mod id_generator;
 pub mod interval_tree;
 pub mod sync;

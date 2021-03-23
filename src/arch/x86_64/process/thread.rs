@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, sync::Arc};
-use moondust_utils::sync::mutex::Mutex;
+use moondust_utils::{id_generator::IdGenerator, sync::mutex::Mutex};
 use x86_64::structures::paging::PageTable;
 
 use crate::arch::globals;
@@ -19,10 +19,12 @@ pub struct Thread {
     pub(super) is_stack_setup: bool,
 }
 
+static THREAD_ID_GENERATOR: IdGenerator = IdGenerator::new();
+
 impl Thread {
-    pub async fn new_empty_process(thread_id: usize, stack_start: u64, stack_size: usize) -> Self {
+    pub async fn new_empty_process(stack_start: u64, stack_size: usize) -> Self {
         let mut r = Self {
-            thread_id,
+            thread_id: THREAD_ID_GENERATOR.get_value(),
             page_table: Arc::new(Mutex::new(KernelPageTable::new(
                 Self::create_new_kernel_only_pagetable_from_current(),
             ))),

@@ -25,4 +25,4 @@ pub const MAX_CORE_COUNT: usize = 512;
 
 /// Log settings
 pub const DEFAULT_LOG_LEVEL: Level = Level::Info;
-pub const EXTRA_LOGS: [&'static str; 1] = ["bootstrap"];
+pub const EXTRA_LOGS: [&'static str; 2] = ["bootstrap", "user_future"];

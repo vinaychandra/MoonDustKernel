@@ -14,6 +14,12 @@ pub mod user_future;
 
 static SHOULD_WAKE: AtomicBool = AtomicBool::new(false);
 
+/// Function that activates the thread before it is actually polled.
+pub async fn activating_thread(mut user_future: Thread) -> u8 {
+    user_future.activate().await;
+    user_future.await
+}
+
 pub fn block_on<T>(task: impl Future<Output = T>) -> T {
     let waker = SchedulerWaker::new();
     pin!(task);

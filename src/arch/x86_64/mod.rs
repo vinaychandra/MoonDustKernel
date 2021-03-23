@@ -24,7 +24,7 @@ pub static PHYSICAL_MEMORY_ALLOCATOR: buddy_system_allocator::LockedHeap<40> =
     buddy_system_allocator::LockedHeap::new();
 
 pub mod cpu_locals {
-    use core::cell::RefCell;
+    use core::cell::{Cell, RefCell};
 
     use alloc::sync::Arc;
     use moondust_utils::sync::mutex::Mutex;
@@ -36,6 +36,9 @@ pub mod cpu_locals {
     #[thread_local]
     pub static CURRENT_PAGE_TABLE: RefCell<Option<Arc<Mutex<KernelPageTable>>>> =
         RefCell::new(None);
+
+    #[thread_local]
+    pub static CURRENT_THREAD_ID: Cell<usize> = Cell::new(0);
 }
 
 pub fn is_kernel_mode(addr: u64) -> bool {
