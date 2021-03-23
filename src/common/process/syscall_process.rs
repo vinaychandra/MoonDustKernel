@@ -13,7 +13,7 @@ impl Thread {
         };
         // TODO: sanitize/verify
         match syscall.syscall_info {
-            Syscalls::Exit { val } => {
+            Syscalls::Exit(val) => {
                 info!("Thread with id {} exited with code {}", self.thread_id, val);
                 return Poll::Ready(val);
             }

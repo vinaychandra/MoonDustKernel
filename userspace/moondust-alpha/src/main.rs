@@ -14,7 +14,7 @@ pub fn _start() {
     debug_print!("Syscall!");
     unsafe { asm!("nop") };
     unsafe { asm!("nop") };
-    let a = Syscalls::Exit { val: 10 };
+    let a = Syscalls::Exit(10);
     a.invoke();
 }
 

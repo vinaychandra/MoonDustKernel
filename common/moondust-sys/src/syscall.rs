@@ -1,7 +1,7 @@
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub enum Syscalls {
-    Exit { val: u8 },
+    Exit(u8),
     Debug { ptr: u64, len: u64 },
 }
 
