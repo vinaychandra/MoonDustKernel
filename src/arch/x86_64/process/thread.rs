@@ -6,7 +6,7 @@ use crate::arch::globals;
 use crate::arch::memory::kernel_page_table::KernelPageTable;
 use crate::common::memory::paging::{IMemoryMapper, MapperPermissions};
 
-use super::state::ThreadState;
+use super::state::{Registers, ThreadState};
 
 #[derive(Debug)]
 pub struct Thread {
@@ -26,11 +26,7 @@ impl Thread {
             page_table: Arc::new(Mutex::new(KernelPageTable::new(
                 Self::create_new_kernel_only_pagetable_from_current(),
             ))),
-            state: ThreadState::Syscall {
-                registers: Default::default(),
-                syscall_info: None,
-                sysret_data: None,
-            },
+            state: ThreadState::NotStarted(Registers::default()),
             stack_start,
             stack_size,
             is_stack_setup: false,
@@ -40,15 +36,10 @@ impl Thread {
     }
 
     pub fn setup_user_ip(&mut self, ip: u64) {
-        if let ThreadState::Syscall {
-            registers,
-            syscall_info: _,
-            sysret_data: _,
-        } = &mut self.state
-        {
+        if let ThreadState::NotStarted(registers) = &mut self.state {
             registers.rip = ip;
         } else {
-            panic!("Cannot setup ip when threadstate is not in syscall.")
+            panic!("Cannot setup ip when threadstate is not in NotStarted state.")
         }
     }
 
@@ -65,12 +56,7 @@ impl Thread {
             MapperPermissions::READ | MapperPermissions::RING_3 | MapperPermissions::WRITE,
         )
         .unwrap();
-        if let ThreadState::Syscall {
-            registers,
-            syscall_info: _,
-            sysret_data: _,
-        } = &mut self.state
-        {
+        if let ThreadState::NotStarted(registers) = &mut self.state {
             registers.rbp = self.stack_start + self.stack_size as u64;
             registers.rsp = self.stack_start + self.stack_size as u64;
             self.is_stack_setup = true;

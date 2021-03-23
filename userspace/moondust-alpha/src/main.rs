@@ -4,7 +4,7 @@
 
 use core::panic::PanicInfo;
 
-use moondust_sys::{debug_print, syscall::SyscallInfo};
+use moondust_sys::{debug_print, syscall::Syscalls};
 
 #[no_mangle] // don't mangle the name of this function
 pub fn _start() {
@@ -14,7 +14,7 @@ pub fn _start() {
     debug_print!("Syscall!");
     unsafe { asm!("nop") };
     unsafe { asm!("nop") };
-    let a = SyscallInfo::Exit { val: 10 };
+    let a = Syscalls::Exit { val: 10 };
     a.invoke();
 }
 

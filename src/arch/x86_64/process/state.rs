@@ -1,6 +1,6 @@
 use core::task::Waker;
 
-use moondust_sys::syscall::{SyscallInfo, SysretInfo};
+use moondust_sys::syscall::{Syscalls, Sysrets};
 
 #[derive(Default, Debug)]
 pub struct Registers {
@@ -60,17 +60,18 @@ pub enum ThreadState {
     Running,
 
     /// This thread has syscall'ed.
-    Syscall {
-        registers: Registers,
-        syscall_info: Option<SyscallInfo>,
-        sysret_data: Option<SysretWrapper>,
-    },
+    Syscall(SyscallState),
 
-    Ignored, // Ignored state.
+    /// Thread has not started
+    NotStarted(Registers),
 }
 
 #[derive(Debug)]
-pub struct SysretWrapper {
-    pub info: SysretInfo,
+pub struct SyscallState {
+    pub registers: Registers,
+    pub syscall_info: Syscalls,
     pub waker: Waker,
+
+    pub return_data_is_ready: bool,
+    pub return_data: &'static mut Sysrets,
 }

@@ -4,11 +4,11 @@ use core::{
 };
 
 use futures_lite::Future;
-use moondust_sys::syscall::{SyscallInfo, SysretInfo};
+use moondust_sys::syscall::SyscallWrapper;
 use x86_64::{registers::model_specific::LStar, VirtAddr};
 
 use super::{
-    state::{Registers, ThreadState},
+    state::{Registers, SyscallState, ThreadState},
     Thread,
 };
 
@@ -42,38 +42,12 @@ fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll
         ThreadState::Running => {
             panic!("Thread is already in running state!");
         }
-        ThreadState::Syscall {
-            registers,
-            syscall_info,
-            sysret_data,
-        } => {
-            if let Some(_scall) = syscall_info {
-                match sysret_data {
-                    Some(sysret) => {
-                        let info = &sysret.info;
-                        match info {
-                            SysretInfo::NoVal => unsafe {
-                                asm!("
-                                        cli
-                                        mov rsp, rdi
-                                        mov rbp, rsi
-                                        sysretq
-                                    ", in("rdi") registers.rsp, in("rsi") registers.rbp, in("rax") registers.rax,
-                                    in("rbx") registers.rbx, in("rcx") registers.rip, in("rdx") registers.rdx,
-                                    in("r8") registers.r8, in("r9") registers.r9, in("r10") registers.r10,
-                                    in("r11") registers.rflags, in("r12") registers.r12, in("r13") registers.r13,
-                                    in("r14") registers.r14, in("r15") registers.r15);
-                            },
-                        }
-                    }
-                    None => return Poll::Pending,
-                }
-            } else {
-                // No syscall, we can continue this.
-                // Although this is a "noreturn", we do not add the option so that rust doesn't
-                // optimize out the remaning statements.
-                unsafe {
-                    asm!("
+        ThreadState::NotStarted(registers) => {
+            // No syscall, we can continue this.
+            // Although this is a "noreturn", we do not add the option so that rust doesn't
+            // optimize out the remaning statements.
+            unsafe {
+                asm!("
                         cli
                         mov rsp, rdi
                         mov rbp, rsi
@@ -83,16 +57,33 @@ fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll
                     in("r8") registers.r8, in("r9") registers.r9, in("r10") registers.r10,
                     in("r11") registers.rflags, in("r12") registers.r12, in("r13") registers.r13,
                     in("r14") registers.r14, in("r15") registers.r15);
-                }
             }
         }
-        _ => {}
+        ThreadState::Syscall(state) => {
+            if !state.return_data_is_ready {
+                return Poll::Pending;
+            }
+
+            let registers = &mut state.registers;
+            unsafe {
+                asm!("
+                        cli
+                        mov rsp, rdi
+                        mov rbp, rsi
+                        sysretq
+                    ", in("rdi") registers.rsp, in("rsi") registers.rbp, in("rax") registers.rax,
+                    in("rbx") registers.rbx, in("rcx") registers.rip, in("rdx") registers.rdx,
+                    in("r8") registers.r8, in("r9") registers.r9, in("r10") registers.r10,
+                    in("r11") registers.rflags, in("r12") registers.r12, in("r13") registers.r13,
+                    in("r14") registers.r14, in("r15") registers.r15);
+            }
+        }
     }
 
     let regs: Registers;
-    let syscall: SyscallInfo;
+    let syscall_state: SyscallState;
     unsafe {
-        let retrieved_syscall: *const SyscallInfo;
+        let retrieved_syscall: *mut SyscallWrapper;
         asm!(
             "user_future_resume_point:
             nop
@@ -102,12 +93,20 @@ fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll
             out("rdi") retrieved_syscall, out("r8") _, out("r9") _, out("r10") _, out("r11") _, out("r12") _,
             out("r13") _, out("r14") _, out("r15") _,
         );
-        syscall = (&*retrieved_syscall).clone();
         regs = REGISTERS.take().expect("Expected REGISTERS after sysret");
+        syscall_state = SyscallState {
+            registers: regs,
+            syscall_info: (*retrieved_syscall).call_info.clone(),
+            waker: cx.waker().clone(),
+            return_data_is_ready: false,
+            return_data: &mut (*retrieved_syscall).return_info,
+        };
     }
 
+    thread.state = ThreadState::Syscall(syscall_state);
+
     // User's syscall reaches here. Now process it.
-    return thread.process_syscall(cx, syscall, regs);
+    return thread.process_syscall();
 }
 
 #[thread_local]
@@ -121,7 +120,7 @@ fn set_syscall_location(syscall_entry: *const ()) {
 #[inline(never)]
 #[naked]
 unsafe extern "C" fn syscall_entry_fn(
-    _info: *const SyscallInfo,
+    _info: *const SyscallWrapper,
     _b: u64,
     _c: u64,
     _stored_ip: u64,
@@ -140,7 +139,7 @@ unsafe extern "C" fn syscall_entry_fn(
 static mut REGISTERS: Option<Registers> = None;
 
 unsafe extern "C" fn syscall_entry_fn_2(
-    info: *const SyscallInfo,
+    info: *const SyscallWrapper,
     user_rsp: *const (),
     user_rbp: *const (),
     user_stored_ip: *const (),
