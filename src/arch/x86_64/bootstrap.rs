@@ -91,7 +91,7 @@ pub fn initialize_ap_core(core_num: usize) -> ! {
 fn initialize_bootstrap_core2() -> ! {
     // Intialize logging
     log::set_logger(&crate::KERNEL_LOGGER)
-        .map(|()| log::set_max_level(LevelFilter::Debug))
+        .map(|()| log::set_max_level(LevelFilter::Trace))
         .expect("Setting logger failed");
 
     // This enables syscall extensions on x86_64

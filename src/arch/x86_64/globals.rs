@@ -1,3 +1,5 @@
+use log::Level;
+
 /// The location where all of memory is mapped to.
 pub const MEM_MAP_OFFSET_LOCATION: u64 = 0xFFFF_FF00_0000_0000;
 
@@ -20,3 +22,7 @@ pub const KERNEL_STACK_TOTAL_SIZE: usize = 10 * 1024 * 1024 * 1024;
 
 /// Number of cores to suppoer
 pub const MAX_CORE_COUNT: usize = 512;
+
+/// Log settings
+pub const DEFAULT_LOG_LEVEL: Level = Level::Info;
+pub const EXTRA_LOGS: [&'static str; 1] = ["bootstrap"];
