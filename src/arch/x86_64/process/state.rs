@@ -69,7 +69,7 @@ pub enum ThreadState {
 #[derive(Debug)]
 pub struct SyscallState {
     pub registers: Registers,
-    pub syscall_info: Syscalls,
+    pub syscall_info: Syscalls<'static>,
     pub waker: Waker,
 
     pub return_data_is_ready: bool,

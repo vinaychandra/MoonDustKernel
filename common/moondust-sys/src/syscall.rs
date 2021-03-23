@@ -1,8 +1,8 @@
 #[derive(Debug, Clone)]
 #[repr(C)]
-pub enum Syscalls {
+pub enum Syscalls<'a> {
     Exit(u8),
-    Debug { ptr: u64, len: u64 },
+    Debug { data: &'a str },
 }
 
 #[derive(Debug, Clone)]
@@ -13,12 +13,12 @@ pub enum Sysrets {
 
 #[derive(Debug, Clone)]
 #[repr(C)]
-pub struct SyscallWrapper {
-    pub call_info: Syscalls,
+pub struct SyscallWrapper<'a> {
+    pub call_info: Syscalls<'a>,
     pub return_info: Sysrets,
 }
 
-impl Syscalls {
+impl Syscalls<'_> {
     /// Invoke the syscall.
     pub fn invoke(self) -> Sysrets {
         let mut wrapper = SyscallWrapper {

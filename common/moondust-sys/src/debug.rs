@@ -6,11 +6,7 @@ struct DebugPrinter {}
 
 impl fmt::Write for DebugPrinter {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        let b = s.as_bytes();
-        let scall = Syscalls::Debug {
-            ptr: b.as_ptr() as u64,
-            len: b.len() as u64,
-        };
+        let scall = Syscalls::Debug { data: s };
         scall.invoke();
         Ok(())
     }

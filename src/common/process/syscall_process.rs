@@ -17,10 +17,8 @@ impl Thread {
                 info!("Thread with id {} exited with code {}", self.thread_id, val);
                 return Poll::Ready(val);
             }
-            Syscalls::Debug { ptr, len } => {
-                let slice = unsafe { core::slice::from_raw_parts(ptr as *const u8, len as usize) };
-                let s = core::str::from_utf8(slice).expect("//TODO! NOT A STR");
-                info!("Test syscall with val {}", s);
+            Syscalls::Debug { data } => {
+                info!("Test syscall with val {}", data);
                 *syscall.return_data = Sysrets::NoVal;
                 syscall.return_data_is_ready = true;
                 syscall.waker.wake_by_ref();
