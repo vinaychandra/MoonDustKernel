@@ -1,6 +1,6 @@
 use core::fmt::{self, Write};
 
-use crate::syscall::Syscalls;
+use moondust_sys::syscall::Syscalls;
 
 struct DebugPrinter {}
 

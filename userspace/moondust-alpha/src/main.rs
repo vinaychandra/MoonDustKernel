@@ -4,7 +4,10 @@
 
 use core::panic::PanicInfo;
 
-use moondust_sys::{debug_print, syscall::Syscalls};
+use moondust_sys::syscall::Syscalls;
+
+#[macro_use]
+extern crate moondust_std;
 
 #[no_mangle] // don't mangle the name of this function
 pub fn _start() {
