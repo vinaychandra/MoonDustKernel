@@ -1,11 +1,11 @@
-use core::{panic, pin::Pin, task::Poll};
+use core::{panic, task::Poll};
 
 use moondust_sys::syscall::{Syscalls, Sysrets};
 
 use crate::arch::process::{state::ThreadState, Thread};
 
 impl Thread {
-    pub fn process_syscall(mut self: Pin<&mut Self>) -> Poll<u8> {
+    pub async fn process_syscall(&mut self) -> Poll<u8> {
         let state = &mut self.state;
         let syscall = match state {
             ThreadState::Syscall(a) => a,

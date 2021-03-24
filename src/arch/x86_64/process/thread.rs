@@ -1,3 +1,5 @@
+use core::{panic, task::Poll};
+
 use alloc::{boxed::Box, sync::Arc};
 use moondust_utils::{id_generator::IdGenerator, sync::mutex::Mutex};
 use x86_64::structures::paging::PageTable;
@@ -6,7 +8,10 @@ use crate::arch::globals;
 use crate::arch::memory::kernel_page_table::KernelPageTable;
 use crate::common::memory::paging::{IMemoryMapper, MapperPermissions};
 
-use super::state::{Registers, ThreadState};
+use super::{
+    state::{Registers, ThreadState},
+    user_future::UserSwitcher,
+};
 
 #[derive(Debug)]
 pub struct Thread {
@@ -35,6 +40,24 @@ impl Thread {
         };
         r.setup_user_stack().await;
         r
+    }
+
+    pub async fn run_thread(mut self) -> u8 {
+        loop {
+            self.activate().await;
+            let user_switcher = UserSwitcher { thread: &mut self };
+            user_switcher.await;
+
+            match self.state {
+                ThreadState::Running => panic!("Thread cannot be in Running state after running!"),
+                ThreadState::NotStarted(_) => panic!("Thread cannot be NotStarted after running!"),
+                ThreadState::Syscall(_) => {
+                    if let Poll::Ready(ret_val) = self.process_syscall().await {
+                        return ret_val;
+                    }
+                }
+            }
+        }
     }
 
     pub fn setup_user_ip(&mut self, ip: u64) {
@@ -78,19 +101,6 @@ impl Thread {
             pt.activate();
             crate::arch::cpu_locals::CURRENT_PAGE_TABLE.replace(Some(self.page_table.clone()));
         });
-    }
-
-    pub fn try_activate(&mut self) -> bool {
-        if let Some(mut pt) = self.page_table.try_lock() {
-            ::x86_64::instructions::interrupts::without_interrupts(|| {
-                // This will also prevent the page table from being dropped.
-                pt.activate();
-                crate::arch::cpu_locals::CURRENT_PAGE_TABLE.replace(Some(self.page_table.clone()));
-            });
-            return true;
-        }
-
-        return false;
     }
 
     fn create_new_kernel_only_pagetable_from_current() -> Box<PageTable> {

@@ -137,7 +137,7 @@ async fn load_alpha() {
             let entry_point = binary.entry_point() as *const ();
             thread.setup_user_ip(entry_point as u64);
         }
-        let result = SCHEDULER.spawn(1, thread).await;
+        let result = SCHEDULER.spawn(1, thread.run_thread()).await;
         info!("Alpha process exited with return status: {}", result);
     }
 

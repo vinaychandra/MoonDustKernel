@@ -13,20 +13,20 @@ use super::{
 };
 use crate::arch::cpu_locals;
 
-impl Future for Thread {
-    type Output = u8;
+crate struct UserSwitcher<'a> {
+    pub thread: &'a mut Thread,
+}
+
+impl<'a> Future for UserSwitcher<'a> {
+    type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         user_switching_fn(self, cx)
     }
 }
 
-fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll<u8> {
-    // TODO: This can cause busy wait when there is nothing else to run.
-    if !thread.try_activate() {
-        cx.waker().wake_by_ref();
-        return Poll::Pending;
-    }
+fn user_switching_fn(mut thread_runner: Pin<&mut UserSwitcher>, cx: &mut Context<'_>) -> Poll<()> {
+    let thread = &mut thread_runner.thread;
 
     cpu_locals::CURRENT_THREAD_ID.set(thread.thread_id);
     let thread_id = thread.thread_id;
@@ -130,9 +130,7 @@ fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll
     }
 
     thread.state = ThreadState::Syscall(syscall_state);
-
-    // User's syscall reaches here. Now process it.
-    return thread.process_syscall();
+    return Poll::Ready(());
 }
 
 #[thread_local]
