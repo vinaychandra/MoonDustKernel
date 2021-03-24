@@ -22,7 +22,12 @@ impl Future for Thread {
 }
 
 fn user_switching_fn(mut thread: Pin<&mut Thread>, cx: &mut Context<'_>) -> Poll<u8> {
-    // TODO: Activate thread?
+    // TODO: This can cause busy wait when there is nothing else to run.
+    if !thread.try_activate() {
+        cx.waker().wake_by_ref();
+        return Poll::Pending;
+    }
+
     cpu_locals::CURRENT_THREAD_ID.set(thread.thread_id);
     let thread_id = thread.thread_id;
 

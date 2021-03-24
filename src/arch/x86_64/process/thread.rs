@@ -80,6 +80,19 @@ impl Thread {
         });
     }
 
+    pub fn try_activate(&mut self) -> bool {
+        if let Some(mut pt) = self.page_table.try_lock() {
+            ::x86_64::instructions::interrupts::without_interrupts(|| {
+                // This will also prevent the page table from being dropped.
+                pt.activate();
+                crate::arch::cpu_locals::CURRENT_PAGE_TABLE.replace(Some(self.page_table.clone()));
+            });
+            return true;
+        }
+
+        return false;
+    }
+
     fn create_new_kernel_only_pagetable_from_current() -> Box<PageTable> {
         let mut new_table = Box::new(PageTable::new());
 
