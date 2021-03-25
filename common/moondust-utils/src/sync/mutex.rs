@@ -59,7 +59,7 @@ impl<T> Mutex<T> {
     ///
     /// let mutex = Mutex::new(0);
     /// ```
-    pub fn new(t: T) -> Mutex<T> {
+    pub const fn new(t: T) -> Mutex<T> {
         Mutex {
             locked: AtomicBool::new(false),
             wakers: WakerSet::new(),

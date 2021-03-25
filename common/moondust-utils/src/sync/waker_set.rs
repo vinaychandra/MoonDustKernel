@@ -50,7 +50,7 @@ pub struct WakerSet {
 impl WakerSet {
     /// Creates a new `WakerSet`.
     #[inline]
-    pub fn new() -> WakerSet {
+    pub const fn new() -> WakerSet {
         WakerSet {
             flag: AtomicUsize::new(0),
             inner: UnsafeCell::new(Inner {
