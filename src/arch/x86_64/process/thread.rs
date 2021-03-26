@@ -18,10 +18,6 @@ pub struct Thread {
     pub thread_id: usize,
     page_table: Arc<Mutex<KernelPageTable>>,
     pub state: ThreadState,
-
-    stack_start: u64,
-    stack_size: usize,
-    pub(super) is_stack_setup: bool,
 }
 
 static THREAD_ID_GENERATOR: IdGenerator = IdGenerator::new();
@@ -34,11 +30,8 @@ impl Thread {
                 Self::create_new_kernel_only_pagetable_from_current(),
             ))),
             state: ThreadState::NotStarted(Registers::default()),
-            stack_start,
-            stack_size,
-            is_stack_setup: false,
         };
-        r.setup_user_stack().await;
+        r.setup_user_stack(stack_start, stack_size).await;
         r
     }
 
@@ -68,23 +61,22 @@ impl Thread {
         }
     }
 
-    pub(super) async fn setup_user_stack(&mut self) {
+    async fn setup_user_stack(&mut self, stack_start: u64, stack_size: usize) {
         debug_assert!(
-            self.stack_size % globals::PAGE_SIZE == 0,
+            stack_size % globals::PAGE_SIZE == 0,
             "Stack size should be aligned"
         );
 
         let mut kpt = self.page_table.lock().await;
         kpt.map_with_alloc(
-            self.stack_start as *const u8,
-            self.stack_size,
+            stack_start as *const u8,
+            stack_size,
             MapperPermissions::READ | MapperPermissions::RING_3 | MapperPermissions::WRITE,
         )
         .unwrap();
         if let ThreadState::NotStarted(registers) = &mut self.state {
-            registers.rbp = self.stack_start + self.stack_size as u64;
-            registers.rsp = self.stack_start + self.stack_size as u64;
-            self.is_stack_setup = true;
+            registers.rbp = stack_start + stack_size as u64;
+            registers.rsp = stack_start + stack_size as u64;
         } else {
             panic!("Cannot setup user stack when threadstate is not in syscall.")
         }
