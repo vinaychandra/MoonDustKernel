@@ -2,7 +2,7 @@
 #![feature(alloc_error_handler)]
 #![feature(asm)]
 
-use core::panic::PanicInfo;
+use core::{alloc::Layout, cmp::max, panic::PanicInfo};
 
 use moondust_sys::syscall::{heap::Heap, Syscalls};
 use moondust_utils::buddy_system_allocator::{self, LockedHeapWithRescue};
@@ -44,8 +44,10 @@ fn _start() -> ! {
     unreachable!()
 }
 
-fn expand_heap(heap: &mut buddy_system_allocator::Heap<20>) {
-    let added_heap = Heap::expand_heap_by(100 * 1024); // TODO: Better number here?
+fn expand_heap(heap: &mut buddy_system_allocator::Heap<20>, layout: Layout) {
+    // 2 * (Increase by 10KiB if user requests less than that.)
+    let to_be_expanded_by = 2 * max(max(layout.size(), layout.align()), 10 * 1024);
+    let added_heap = Heap::expand_heap_by(to_be_expanded_by);
     unsafe {
         heap.add_to_heap(added_heap.0 as _, added_heap.1 as _);
     }
