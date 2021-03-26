@@ -24,15 +24,25 @@ static THREAD_ID_GENERATOR: IdGenerator = IdGenerator::new();
 
 impl Thread {
     pub async fn new_empty_process(stack_start: u64, stack_size: usize) -> Self {
-        let mut r = Self {
+        let mut thread = Self {
             thread_id: THREAD_ID_GENERATOR.get_value(),
             page_table: Arc::new(Mutex::new(KernelPageTable::new(
                 Self::create_new_kernel_only_pagetable_from_current(),
             ))),
             state: ThreadState::NotStarted(Registers::default()),
         };
-        r.setup_user_stack(stack_start, stack_size).await;
-        r
+        thread.setup_user_stack(stack_start, stack_size).await;
+        thread
+    }
+
+    pub async fn new_empty_thread(&self, stack_start: u64, stack_size: usize) -> Self {
+        let mut thread = Self {
+            thread_id: THREAD_ID_GENERATOR.get_value(),
+            page_table: self.page_table.clone(),
+            state: ThreadState::NotStarted(Registers::default()),
+        };
+        thread.setup_user_stack(stack_start, stack_size).await;
+        thread
     }
 
     pub async fn run_thread(mut self) -> u8 {
@@ -105,5 +115,11 @@ impl Thread {
         new_table[511] = table[511].clone(); // Everything else.
 
         new_table
+    }
+}
+
+impl Drop for Thread {
+    fn drop(&mut self) {
+        THREAD_ID_GENERATOR.return_value(self.thread_id);
     }
 }
