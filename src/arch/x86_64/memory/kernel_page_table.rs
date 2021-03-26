@@ -17,7 +17,10 @@ use x86_64::{
 
 use crate::{
     arch::globals,
-    common::memory::paging::{IMemoryMapper, MapperPermissions},
+    common::{
+        align_up,
+        memory::paging::{IMemoryMapper, MapperPermissions},
+    },
 };
 
 #[derive(Debug)]
@@ -25,6 +28,8 @@ pub struct KernelPageTable {
     page_table: Box<PageTable>,
     vmem_allocated: usize,
     mem_areas: IntervalTree<u64>,
+
+    heap_allocated: usize,
 }
 
 impl KernelPageTable {
@@ -33,6 +38,7 @@ impl KernelPageTable {
             page_table,
             vmem_allocated: 0,
             mem_areas: IntervalTree::new(),
+            heap_allocated: 0,
         }
     }
 
@@ -52,6 +58,33 @@ impl KernelPageTable {
         unsafe {
             Cr3::write(frame, flags);
         }
+    }
+
+    pub fn get_user_heap_size(&self) -> usize {
+        self.heap_allocated
+    }
+
+    pub fn map_user_heap(&mut self, size_to_increase: usize) -> Result<(), &'static str> {
+        let size_to_increase = align_up(size_to_increase, globals::PAGE_SIZE);
+        let final_size = self.heap_allocated + size_to_increase;
+
+        // Max heap size reached.
+        if final_size >= globals::USER_HEAP_END - globals::USER_HEAP_START {
+            return Err("Max heap size reached");
+        }
+
+        let address_to_allocate_from = globals::USER_HEAP_START + self.heap_allocated;
+        let val = self.map_with_alloc(
+            address_to_allocate_from as _,
+            size_to_increase,
+            MapperPermissions::WRITE | MapperPermissions::RING_3 | MapperPermissions::READ,
+        );
+        if val.is_err() {
+            // TODO: kill this process?
+            return Err("Out of memory while allocating heap");
+        }
+        self.heap_allocated = final_size;
+        Ok(())
     }
 }
 

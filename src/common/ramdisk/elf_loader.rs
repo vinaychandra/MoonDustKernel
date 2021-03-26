@@ -37,14 +37,16 @@ impl<'a> ElfLoader for DefaultElfLoader<'a> {
         for header in load_headers {
             info!(
                 target:"elf",
-                "allocate base = {:#x} size = {:#x} flags = {}",
+                "allocate base = {:#x}, end = {:#x} size = {:#x} flags = {}",
                 header.virtual_addr(),
+                header.virtual_addr() + header.mem_size(),
                 header.mem_size(),
                 header.flags()
             );
 
-            let virt_addr_to_load = header.virtual_addr();
-            let target_vaddr = common::align_down(virt_addr_to_load as usize, globals::PAGE_SIZE);
+            let virt_addr_to_load_at = header.virtual_addr() as usize;
+            let virt_addr_to_load_at_page_aligned =
+                common::align_down(virt_addr_to_load_at, globals::PAGE_SIZE);
 
             // We load only Ring 3 ELFs. So, add Ring3 permissions as well.
             let mut target_permissions = MapperPermissions::READ | MapperPermissions::RING_3;
@@ -56,19 +58,30 @@ impl<'a> ElfLoader for DefaultElfLoader<'a> {
                 target_permissions |= MapperPermissions::EXECUTE;
             }
 
-            let size = common::align_up(header.mem_size() as usize, globals::PAGE_SIZE) as usize;
-            self.mapper
-                .map_with_alloc(target_vaddr as *const u8, size, target_permissions)?;
+            let end_vaddr_to_load_at_aligned = common::align_up(
+                virt_addr_to_load_at + header.mem_size() as usize,
+                globals::PAGE_SIZE,
+            ) as usize;
+
+            // TODO: deal with overlapping regions.
+            self.mapper.map_with_alloc(
+                virt_addr_to_load_at_page_aligned as *const u8,
+                end_vaddr_to_load_at_aligned - virt_addr_to_load_at_page_aligned,
+                target_permissions,
+            )?;
 
             // Zero the data
-            for i in 0..size {
-                let target_paddr = self
-                    .mapper
-                    .virt_to_phys((target_vaddr + i) as *const ())
-                    .unwrap();
+            for i in virt_addr_to_load_at_page_aligned..end_vaddr_to_load_at_aligned {
+                let target_paddr = self.mapper.virt_to_phys(i as *const ()).unwrap();
                 let vaddr_in_current = target_paddr as u64 + globals::MEM_MAP_OFFSET_LOCATION;
                 unsafe { *(vaddr_in_current as *mut u8) = 0 };
             }
+            info!(
+                target: "elf",
+                "allocate done. Start: {:#x}, End: {:#x}",
+                virt_addr_to_load_at_page_aligned,
+                end_vaddr_to_load_at_aligned,
+            )
         }
 
         Ok(())
@@ -80,7 +93,7 @@ impl<'a> ElfLoader for DefaultElfLoader<'a> {
     fn load(&mut self, flags: Flags, base: VAddr, region: &[u8]) -> Result<(), &'static str> {
         let start = self.vbase + base;
         let end = self.vbase + base + region.len() as u64;
-        info!(target:"elf", "load region into = {:#x} -- {:#x}", start, end);
+        info!(target:"elf", "load region into = {:#x} -- {:#x} (Size: {:#x})", start, end, end - start);
 
         if flags.is_execute() {
             self.last_exe_section_location = start;
@@ -90,7 +103,11 @@ impl<'a> ElfLoader for DefaultElfLoader<'a> {
             // Because we load everything in a target mapper rather than the current one, we use the mapper provided
             // for getting target locations.
             // TODO: Reduce virt_to_phys calls.
-            let target_physical_addr = self.mapper.virt_to_phys((start + i) as *const ()).unwrap();
+            let result = self.mapper.virt_to_phys((start + i) as *const ());
+            let target_physical_addr = match result {
+                Some(a) => a,
+                None => panic!("Unable to translate virtual address {:x}", (start + i)),
+            };
             let virt_addr_in_current =
                 target_physical_addr as u64 + globals::MEM_MAP_OFFSET_LOCATION;
             unsafe { *(virt_addr_in_current as *mut u8) = region[i as usize] };

@@ -26,3 +26,8 @@ pub const MAX_CORE_COUNT: usize = 512;
 /// Log settings
 pub const DEFAULT_LOG_LEVEL: Level = Level::Info;
 pub const EXTRA_LOGS: [&'static str; 2] = ["bootstrap", "user_future"];
+
+pub const USER_STACK_END: usize = 0x6FFF_FFFF_FFFF;
+pub const USER_HEAP_START: usize = 0x4000_0000_0000;
+pub const USER_HEAP_END: usize = 0x4FFF_FFFF_FFFF;
+pub const USER_HEAP_DEFAULT_SIZE: usize = 10 * 4096;

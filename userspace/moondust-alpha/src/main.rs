@@ -4,7 +4,7 @@
 
 use core::panic::PanicInfo;
 
-use moondust_sys::syscall::Syscalls;
+use moondust_sys::syscall::{heap::Heap, Syscalls};
 
 #[macro_use]
 extern crate moondust_std;
@@ -15,8 +15,10 @@ pub fn _start() {
     unsafe { asm!("nop") };
     unsafe { asm!("nop") };
     debug_print!("Syscall!");
-    unsafe { asm!("nop") };
-    unsafe { asm!("nop") };
+
+    let current_heap_size = Heap::get_current_heap_size();
+    debug_print!("Current heap size is {} bytes", current_heap_size);
+
     let a = Syscalls::Exit(10);
     a.invoke();
 }

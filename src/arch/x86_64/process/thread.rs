@@ -33,6 +33,10 @@ impl Thread {
         };
         thread.setup_user_stack(stack_start, stack_size).await;
         thread
+            .increase_user_heap(globals::USER_HEAP_DEFAULT_SIZE)
+            .await
+            .unwrap();
+        thread
     }
 
     pub async fn new_empty_thread(&self, stack_start: u64, stack_size: usize) -> Self {
@@ -42,6 +46,10 @@ impl Thread {
             state: ThreadState::NotStarted(Registers::default()),
         };
         thread.setup_user_stack(stack_start, stack_size).await;
+        thread
+            .increase_user_heap(globals::USER_HEAP_DEFAULT_SIZE)
+            .await
+            .unwrap();
         thread
     }
 
@@ -91,6 +99,12 @@ impl Thread {
             panic!("Cannot setup user stack when threadstate is not in syscall.")
         }
     }
+
+    async fn increase_user_heap(&mut self, size_to_increase: usize) -> Result<(), &'static str> {
+        let mut kpt = self.page_table.lock().await;
+        kpt.map_user_heap(size_to_increase)
+    }
+
     pub fn get_page_table(&self) -> &Arc<Mutex<KernelPageTable>> {
         &self.page_table
     }

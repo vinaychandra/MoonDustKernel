@@ -1,14 +1,25 @@
+pub mod heap;
+
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub enum Syscalls<'a> {
     Exit(u8),
     Debug { data: &'a str },
+
+    Heap(HeapControl),
+}
+
+#[derive(Debug, Clone)]
+#[repr(C)]
+pub enum HeapControl {
+    GetCurrentHeapSize,
 }
 
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub enum Sysrets {
     NoVal,
+    SuccessWithVal(u64),
 }
 
 #[derive(Debug, Clone)]
