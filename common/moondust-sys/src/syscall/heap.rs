@@ -12,4 +12,15 @@ impl Heap {
             unreachable!("Sysret here will be a SuccessWithVal")
         }
     }
+
+    // returns added [start, end)
+    pub fn expand_heap_by(increase_by: usize) -> (u64, u64) {
+        let expand_by = Syscalls::Heap(HeapControl::IncreaseHeapBy(increase_by));
+        let rval = expand_by.invoke();
+        if let Sysrets::SuccessWithVal2(a, b) = rval {
+            return (a, b);
+        } else {
+            panic!("Heap expansion failed!");
+        }
+    }
 }

@@ -64,7 +64,10 @@ impl KernelPageTable {
         self.heap_allocated
     }
 
-    pub fn map_user_heap(&mut self, size_to_increase: usize) -> Result<(), &'static str> {
+    pub fn map_more_user_heap(
+        &mut self,
+        size_to_increase: usize,
+    ) -> Result<(usize, usize), &'static str> {
         let size_to_increase = align_up(size_to_increase, globals::PAGE_SIZE);
         let final_size = self.heap_allocated + size_to_increase;
 
@@ -84,7 +87,10 @@ impl KernelPageTable {
             return Err("Out of memory while allocating heap");
         }
         self.heap_allocated = final_size;
-        Ok(())
+        Ok((
+            address_to_allocate_from,
+            address_to_allocate_from + size_to_increase,
+        ))
     }
 }
 

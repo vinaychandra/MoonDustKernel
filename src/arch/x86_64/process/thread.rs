@@ -100,9 +100,12 @@ impl Thread {
         }
     }
 
-    async fn increase_user_heap(&mut self, size_to_increase: usize) -> Result<(), &'static str> {
+    async fn increase_user_heap(
+        &mut self,
+        size_to_increase: usize,
+    ) -> Result<(usize, usize), &'static str> {
         let mut kpt = self.page_table.lock().await;
-        kpt.map_user_heap(size_to_increase)
+        kpt.map_more_user_heap(size_to_increase)
     }
 
     pub fn get_page_table(&self) -> &Arc<Mutex<KernelPageTable>> {

@@ -13,13 +13,16 @@ pub enum Syscalls<'a> {
 #[repr(C)]
 pub enum HeapControl {
     GetCurrentHeapSize,
+    IncreaseHeapBy(usize),
 }
 
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub enum Sysrets {
     NoVal,
+    Fail,
     SuccessWithVal(u64),
+    SuccessWithVal2(u64, u64),
 }
 
 #[derive(Debug, Clone)]

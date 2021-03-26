@@ -41,6 +41,22 @@ impl Thread {
                     syscall.waker.wake_by_ref();
                     Poll::Pending
                 }
+                HeapControl::IncreaseHeapBy(size) => {
+                    let sysret = {
+                        let size_to_increase = *size;
+                        let mut kpt = self.get_page_table().lock().await;
+                        match kpt.map_more_user_heap(size_to_increase) {
+                            Ok((a, b)) => Sysrets::SuccessWithVal2(a as _, b as _),
+                            Err(_) => Sysrets::Fail,
+                        }
+                    };
+
+                    let syscall = self.get_syscall();
+                    *syscall.return_data = sysret;
+                    syscall.return_data_is_ready = true;
+                    syscall.waker.wake_by_ref();
+                    Poll::Pending
+                }
             },
         }
     }
