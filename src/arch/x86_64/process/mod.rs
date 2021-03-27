@@ -12,8 +12,12 @@ pub use thread::*;
 pub mod state;
 pub mod user_future;
 
+#[thread_local]
 static SHOULD_WAKE: AtomicBool = AtomicBool::new(false);
 
+/// Run the future until it is complete while waiting when busy.
+/// This waits when the task is pending until another interrupt to
+/// the system awakens this.
 pub fn block_on<T>(task: impl Future<Output = T>) -> T {
     let waker = SchedulerWaker::new();
     pin!(task);
@@ -37,6 +41,7 @@ pub fn block_on<T>(task: impl Future<Output = T>) -> T {
     }
 }
 
+/// Waker used to wake the blocked execution on a signal.
 struct SchedulerWaker {}
 
 impl SchedulerWaker {

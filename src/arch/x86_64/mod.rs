@@ -16,10 +16,12 @@ use crate::common::memory::fixed_size_block;
 /// Architecture level logs for x86_64.
 pub static LOGGER: SerialLogger = SerialLogger;
 
+/// Heap for the kernel.
 #[global_allocator]
 static KERNEL_HEAP_ALLOCATOR: fixed_size_block::LockedHeap = fixed_size_block::LockedHeap::empty();
 
 //TODO: Provide a better number than 40
+/// The global physical memory allocator for the environment.
 pub static PHYSICAL_MEMORY_ALLOCATOR: buddy_system_allocator::LockedHeap<40> =
     buddy_system_allocator::LockedHeap::new();
 

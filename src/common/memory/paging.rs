@@ -25,11 +25,6 @@ pub trait IMemoryMapper {
     fn virt_to_phys(&mut self, virt_addr: *const ()) -> Option<*const ()>;
 }
 
-pub trait IPageTable {
-    /// Get the address of the current page table.
-    fn get_addr(&self) -> *const dyn IPageTable;
-}
-
 bitflags! {
     /// Permissions for the current page.
     pub struct MapperPermissions : u8 {

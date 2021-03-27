@@ -55,6 +55,7 @@ impl SegmentSelectors {
     }
 }
 
+/// Per Core GDT initialization logic.
 pub fn initialize_gdt() {
     unsafe {
         TSS.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX] =

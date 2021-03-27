@@ -91,8 +91,12 @@ pub fn main_app() -> ! {
 /// Main Function on bootstrap processor.
 /// This function should not return.
 pub fn main_bsp() -> ! {
+    // Thread spawner is used to spawn new threads onto the scheduler.
     SCHEDULER.spawn(2, thread_spawner()).detach();
+
+    // Load the main process.
     SCHEDULER.spawn(2, load_alpha()).detach();
+
     // x86_64::instructions::interrupts::enable();
     arch::process::block_on(SCHEDULER.run())
 }
@@ -150,6 +154,8 @@ async fn load_alpha() {
 /// Channel that will spawn new threads onto the scheduler.
 pub static SPAWN_THREADS: Once<Sender<(Thread, usize)>> = Once::new();
 
+/// A process that consumes [`SPAWN_THREADS`] channel and runs the thread on the scheduler.
+/// This separates the running logic from syscalls and other places.
 pub async fn thread_spawner() {
     let (s, r) = channel(100);
     {

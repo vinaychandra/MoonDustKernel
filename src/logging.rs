@@ -2,6 +2,7 @@ use log::Log;
 
 use crate::arch::globals;
 
+/// Common logging implementation for the kernel.
 pub struct UnifiedLogger {}
 
 impl UnifiedLogger {
@@ -25,6 +26,7 @@ impl Log for UnifiedLogger {
 
     fn log(&self, record: &log::Record) {
         if self.enabled(record.metadata()) {
+            // We default to the architecture defined logger.
             crate::arch::LOGGER.log(record);
         }
     }

@@ -23,6 +23,7 @@ use crate::{
     },
 };
 
+/// Structure for a processes main address space.
 #[derive(Debug)]
 pub struct KernelPageTable {
     page_table: Box<PageTable>,
@@ -30,10 +31,13 @@ pub struct KernelPageTable {
     mem_areas: IntervalTree<u64>,
 
     heap_allocated: usize,
+
+    /// Value until which the current stack has been allocated.
     pub user_stack_allocated_until: usize,
 }
 
 impl KernelPageTable {
+    /// Create an empty KernelPageTable.
     pub fn new(page_table: Box<PageTable>) -> Self {
         Self {
             page_table,
@@ -44,11 +48,13 @@ impl KernelPageTable {
         }
     }
 
+    /// Get the mapper that can map/unmap vmem.
     fn get_mapper(&mut self) -> impl IMemoryMapper + '_ {
         let offset = VirtAddr::new(globals::MEM_MAP_OFFSET_LOCATION);
         unsafe { OffsetPageTable::new(&mut self.page_table, offset) }
     }
 
+    /// Activate the page table.
     pub fn activate(&mut self) {
         let pt_vaddr = self.page_table.as_ref() as *const PageTable as *const ();
         let mut opt = self.get_mapper();
@@ -62,10 +68,12 @@ impl KernelPageTable {
         }
     }
 
+    /// Get the amount of heap currently allocated.
     pub fn get_user_heap_size(&self) -> usize {
         self.heap_allocated
     }
 
+    /// Increase the current user heap.
     pub fn map_more_user_heap(
         &mut self,
         size_to_increase: usize,
@@ -96,6 +104,9 @@ impl KernelPageTable {
     }
 }
 
+// we implement this wrapper in order to track the user regions
+// mapped into the page table. This is faster than doing a page table
+// walk enumerating all the regions.
 impl<'a> IMemoryMapper for KernelPageTable {
     fn map(
         &mut self,

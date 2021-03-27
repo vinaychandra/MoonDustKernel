@@ -1,3 +1,5 @@
+//! LAPIC and IOAPIC support for x86_64 architecture.
+
 use core::{cell::Cell, ptr::null_mut, usize};
 
 use acpi::platform::Apic;
@@ -6,12 +8,16 @@ use x86_64::{registers::model_specific::Msr, PhysAddr};
 
 use crate::arch::globals;
 
+/// Local APIC data.
 #[thread_local]
 pub static mut LAPIC: ApicBase = unsafe { ApicBase::new(null_mut()) };
 
+/// Processor ID of the current processor.
 #[thread_local]
 pub static PROCESSOR_ID: Cell<usize> = Cell::new(0);
 
+/// Initialize the current LAPIC. This is run on each Processor to turn them on and
+/// set the interrupts correctly.
 pub fn initialize_lapic() {
     let lapic_base = read_lapic_base();
     let lapic_mem = lapic_base.as_u64() + globals::MEM_MAP_OFFSET_LOCATION;
@@ -49,6 +55,8 @@ pub fn initialize_lapic() {
     }
 }
 
+/// Startup the IOApic. This is usually run on only one of the processor because IOApic is
+/// shared among multiple cores.
 pub fn initialize_ioapic(apic: Apic) {
     let count = apic.io_apics.len();
     info!(target: "apic", "IOApics found: {}", count);

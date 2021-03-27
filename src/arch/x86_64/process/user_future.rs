@@ -1,3 +1,9 @@
+//! Stitching logic for user stacks on to kernel stacks.
+//! This switcher switches to a user stack and executes until a syscall or preemption. Once either is
+//! encountered, it stitches back the syscall request into the kernel stack making the kernel think that
+//! the current async task has returned with a syscall request. This allows the kernel to operate on a
+//! single thread while the user thread has its own stack.
+
 use core::{
     pin::Pin,
     task::{Context, Poll},
@@ -25,6 +31,9 @@ impl<'a> Future for UserSwitcher<'a> {
     }
 }
 
+/// The function that implements the switching logic.
+/// The switching works because rust sets the required stacks at the start of the function.
+/// We store these pointers and restore them when we want to come back here from a user stack.
 fn user_switching_fn(mut thread_runner: Pin<&mut UserSwitcher>, cx: &mut Context<'_>) -> Poll<()> {
     let thread = &mut thread_runner.thread;
 
@@ -48,6 +57,8 @@ fn user_switching_fn(mut thread_runner: Pin<&mut UserSwitcher>, cx: &mut Context
     // TODO: we only need to set this once.
     set_syscall_location(syscall_entry_fn as *const ());
 
+    // The whole of this match blocks makes the user process run. Logically, this match block never returns.
+    // The execution after the match block is done indirectly.
     match &mut thread.state {
         ThreadState::Running => {
             panic!("Thread is already in running state!");
@@ -102,6 +113,7 @@ fn user_switching_fn(mut thread_runner: Pin<&mut UserSwitcher>, cx: &mut Context
         }
     }
 
+    // The following body is directly invoked from [`syscall_entry_fn_2`].
     let regs: Registers;
     let syscall_state: SyscallState;
     unsafe {
@@ -133,9 +145,11 @@ fn user_switching_fn(mut thread_runner: Pin<&mut UserSwitcher>, cx: &mut Context
     return Poll::Ready(());
 }
 
+// We store RSP and RBP so that the user stack can be stitched back to the kernel stack.
 #[thread_local]
 static mut TRAMPOLINE_1_RSP_RBP: (u64, u64) = (0, 0);
 
+/// This function sets the CPU Register so that the syscall will call into [syscall_entry] function.
 fn set_syscall_location(syscall_entry: *const ()) {
     LStar::write(VirtAddr::new(syscall_entry as u64));
 }
@@ -149,7 +163,7 @@ unsafe extern "C" fn syscall_entry_fn(
     _c: u64,
     _stored_ip: u64,
 ) {
-    // naked to retrieve the values and not corrupt stack.
+    // naked to retrieve the values and not corrupt stack. We want to read the stack information here.
     unsafe {
         asm!("
         mov rsi, rsp
@@ -159,6 +173,7 @@ unsafe extern "C" fn syscall_entry_fn(
     }
 }
 
+/// This is used to store the register state and provide it back to the kernel stack.
 #[thread_local]
 static mut REGISTERS: Option<Registers> = None;
 
@@ -168,6 +183,8 @@ unsafe extern "C" fn syscall_entry_fn_2(
     user_rbp: *const (),
     user_stored_ip: *const (),
 ) {
+    // Once we store the stack, we capture the remaining registers so that we can restore them as needed
+    // at a later point in time.
     unsafe {
         let rbx: u64;
         let r12: u64;

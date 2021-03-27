@@ -1,9 +1,14 @@
+//! The default ELF loader for the kernel.
+
 use elfloader::{ElfLoader, Flags, LoadableHeaders, Rela, TypeRela64, VAddr, P64};
 
 use crate::arch::globals;
 pub use crate::common;
 
 use self::common::memory::paging::{IMemoryMapper, MapperPermissions};
+
+/// Default ELF loader class. Can load ELF onto address space
+/// defined by the [mapper].
 pub struct DefaultElfLoader<'a> {
     vbase: u64,
     mapper: &'a mut dyn IMemoryMapper,
@@ -20,6 +25,8 @@ impl<'a> DefaultElfLoader<'a> {
         }
     }
 
+    /// This returns the last executable region's virtual address.
+    /// Useful for logging purposes.
     pub fn get_exe_location(&self) -> u64 {
         self.last_exe_section_location
     }

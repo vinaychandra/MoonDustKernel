@@ -13,6 +13,7 @@ use super::{
     user_future::UserSwitcher,
 };
 
+/// A single thread of execution in the kernel.
 #[derive(Debug)]
 pub struct Thread {
     pub thread_id: usize,
@@ -23,6 +24,7 @@ pub struct Thread {
 static THREAD_ID_GENERATOR: IdGenerator = IdGenerator::new();
 
 impl Thread {
+    /// Create a new empty process and an empty thread in that process.
     pub async fn new_empty_process(stack_size: usize) -> Self {
         let mut thread = Self {
             thread_id: THREAD_ID_GENERATOR.get_value(),
@@ -39,6 +41,7 @@ impl Thread {
         thread
     }
 
+    /// Create a new thread in the current address space.
     pub async fn new_empty_thread(&self, stack_size: usize) -> Self {
         let mut thread = Self {
             thread_id: THREAD_ID_GENERATOR.get_value(),
@@ -53,6 +56,8 @@ impl Thread {
         thread
     }
 
+    /// Run the thread until its end. This is an async method that will yield
+    /// when the thread calls into kernel or is preempted.
     pub async fn run_thread(mut self) -> u8 {
         loop {
             self.activate().await;
@@ -71,6 +76,7 @@ impl Thread {
         }
     }
 
+    /// Set the initial user IP. This is only callable when creating a thread.
     pub fn setup_user_ip(&mut self, ip: u64) {
         if let ThreadState::NotStarted(registers) = &mut self.state {
             registers.rip = ip;
@@ -79,6 +85,7 @@ impl Thread {
         }
     }
 
+    /// Set user data to be sent when creating a thread.
     pub fn setup_user_custom_data(&mut self, data: u64) {
         if let ThreadState::NotStarted(registers) = &mut self.state {
             registers.rdi = data;
@@ -123,6 +130,7 @@ impl Thread {
         &self.page_table
     }
 
+    /// Activate the current thread.
     pub async fn activate(&mut self) {
         let mut pt = self.page_table.lock().await;
 

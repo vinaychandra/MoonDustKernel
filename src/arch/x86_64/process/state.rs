@@ -55,6 +55,7 @@ impl Registers {
     }
 }
 
+/// The state of a thread.
 #[derive(Debug)]
 pub enum ThreadState {
     Running,
@@ -66,6 +67,7 @@ pub enum ThreadState {
     NotStarted(Registers),
 }
 
+/// A state that denotes the thread state when it is syscall'ed.
 #[derive(Debug)]
 pub struct SyscallState {
     pub registers: Registers,

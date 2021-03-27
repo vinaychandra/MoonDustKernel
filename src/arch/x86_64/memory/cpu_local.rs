@@ -25,6 +25,7 @@ pub fn initialize_tls() {
     let fs_ptr = ((tls_ptr as *const u8 as u64) + (total_size as u64)) as *mut u64;
     x86_64::registers::model_specific::FsBase::write(VirtAddr::from_ptr(fs_ptr));
     unsafe {
+        // SystemV Abi needs [fs:0] to be the value of fs
         *fs_ptr = fs_ptr as u64;
     }
     info!(target: "initialize_tls", "TLS Pointer is set to {:x?}. Size is {:?} bytes", fs_ptr, total_size);

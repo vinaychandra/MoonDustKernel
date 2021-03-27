@@ -1,3 +1,5 @@
+//! Syscall processing logic for threads.
+
 use core::{panic, task::Poll};
 
 use moondust_sys::syscall::{HeapControl, ProcessControl, Syscalls, Sysrets};
@@ -8,6 +10,12 @@ use crate::arch::process::{
 };
 
 impl Thread {
+    /// Process the syscall requested by a thread.
+    /// A return of [Poll::Pending] means that the syscall
+    /// has been processed and the task can be but back in the list.
+    /// In such a case, the waker is used to reschedule the task
+    /// when appropriate.
+    /// Return of a [Poll::Ready] means the thread exited.
     pub async fn process_syscall(&mut self) -> Poll<u8> {
         let state = &mut self.state;
         let syscall = match state {

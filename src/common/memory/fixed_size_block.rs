@@ -1,3 +1,10 @@
+//! Allocator adapted from https://os.phil-opp.com/allocator-designs/
+//! Instead of allocating exactly as much memory as requested, we define a small number
+//! of block sizes and round up each allocation to the next block size.
+//! Like the linked list allocator, we keep track of the unused memory by creating a linked list
+//! in the unused memory. However, instead of using a single list with different block sizes,
+//! we create a separate list for each size class.
+
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::{
     mem,

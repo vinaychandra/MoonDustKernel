@@ -4,6 +4,11 @@ use acpi::{AcpiHandler, PhysicalMapping};
 
 /// Memory handler used by ACPI to access mapping
 /// regions of physical memory.
+/// # Notes
+/// The ACPI crate requires this handler so that it can
+/// map physical memory onto the current address space. Because,
+/// we already map everything into the address space, we just
+/// return the mapped values.
 #[derive(Debug, Clone)]
 pub struct MemoryHandler {
     /// The location where all of physical memory is mapped to.
