@@ -8,7 +8,9 @@ use moondust_sys::syscall::{heap::Heap, Syscalls};
 use moondust_utils::buddy_system_allocator::{self, LockedHeapWithRescue};
 
 pub mod debug;
+pub mod thread;
 
+#[macro_use]
 extern crate alloc;
 
 // TODO: Is it 20?

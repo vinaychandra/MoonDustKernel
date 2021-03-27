@@ -7,6 +7,7 @@ pub enum Syscalls<'a> {
     Debug { data: &'a str },
 
     Heap(HeapControl),
+    Process(ProcessControl),
 }
 
 #[derive(Debug, Clone)]
@@ -14,6 +15,16 @@ pub enum Syscalls<'a> {
 pub enum HeapControl {
     GetCurrentHeapSize,
     IncreaseHeapBy(usize),
+}
+
+#[derive(Debug, Clone)]
+#[repr(C)]
+pub enum ProcessControl {
+    CreateThread {
+        ip: usize,
+        stack_size: usize,
+        extra_data: u64,
+    },
 }
 
 #[derive(Debug, Clone)]

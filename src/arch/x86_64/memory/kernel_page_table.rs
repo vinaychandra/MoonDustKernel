@@ -30,6 +30,7 @@ pub struct KernelPageTable {
     mem_areas: IntervalTree<u64>,
 
     heap_allocated: usize,
+    pub user_stack_allocated_until: usize,
 }
 
 impl KernelPageTable {
@@ -39,6 +40,7 @@ impl KernelPageTable {
             vmem_allocated: 0,
             mem_areas: IntervalTree::new(),
             heap_allocated: 0,
+            user_stack_allocated_until: globals::USER_STACK_END,
         }
     }
 

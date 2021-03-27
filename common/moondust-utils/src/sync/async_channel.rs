@@ -103,6 +103,10 @@ pub struct Sender<T> {
 }
 
 impl<T> Sender<T> {
+    pub fn try_send(&self, msg: T) {
+        let _ignored = self.channel.try_send(msg);
+    }
+
     /// Sends a message into the channel.
     ///
     /// If the channel is full, this method will wait until there is space in the channel.

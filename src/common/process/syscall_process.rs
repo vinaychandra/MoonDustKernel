@@ -1,6 +1,6 @@
 use core::{panic, task::Poll};
 
-use moondust_sys::syscall::{HeapControl, Syscalls, Sysrets};
+use moondust_sys::syscall::{HeapControl, ProcessControl, Syscalls, Sysrets};
 
 use crate::arch::process::{
     state::{SyscallState, ThreadState},
@@ -53,6 +53,31 @@ impl Thread {
 
                     let syscall = self.get_syscall();
                     *syscall.return_data = sysret;
+                    syscall.return_data_is_ready = true;
+                    syscall.waker.wake_by_ref();
+                    Poll::Pending
+                }
+            },
+            Syscalls::Process(ref process_control) => match process_control {
+                ProcessControl::CreateThread {
+                    ip,
+                    stack_size,
+                    extra_data,
+                } => {
+                    let ip = *ip as u64;
+                    let extra_data = *extra_data;
+                    let stack_size = *stack_size;
+                    let mut thread = self.new_empty_thread(stack_size).await;
+                    thread.setup_user_ip(ip);
+                    thread.setup_user_custom_data(extra_data);
+
+                    let thread_id = thread.thread_id;
+                    crate::SCHEDULER
+                        .spawn(2, crate::SPAWN_THREADS.get().unwrap().send((thread, 1)))
+                        .detach();
+
+                    let syscall = self.get_syscall();
+                    *syscall.return_data = Sysrets::SuccessWithVal(thread_id as u64);
                     syscall.return_data_is_ready = true;
                     syscall.waker.wake_by_ref();
                     Poll::Pending

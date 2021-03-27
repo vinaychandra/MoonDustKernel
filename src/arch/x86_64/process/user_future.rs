@@ -63,11 +63,11 @@ fn user_switching_fn(mut thread_runner: Pin<&mut UserSwitcher>, cx: &mut Context
             unsafe {
                 asm!("
                         cli
-                        mov rsp, rdi
+                        mov rsp, rdx
                         mov rbp, rsi
                         sysretq
-                    ", in("rdi") registers.rsp, in("rsi") registers.rbp, in("rax") registers.rax,
-                    in("rbx") registers.rbx, in("rcx") registers.rip, in("rdx") registers.rdx,
+                    ", in("rdi") registers.rdi, in("rsi") registers.rbp, in("rax") registers.rax,
+                    in("rbx") registers.rbx, in("rcx") registers.rip, in("rdx") registers.rsp,
                     in("r8") registers.r8, in("r9") registers.r9, in("r10") registers.r10,
                     in("r11") registers.rflags, in("r12") registers.r12, in("r13") registers.r13,
                     in("r14") registers.r14, in("r15") registers.r15);
@@ -90,11 +90,11 @@ fn user_switching_fn(mut thread_runner: Pin<&mut UserSwitcher>, cx: &mut Context
             unsafe {
                 asm!("
                         cli
-                        mov rsp, rdi
+                        mov rsp, rdx
                         mov rbp, rsi
                         sysretq
-                    ", in("rdi") registers.rsp, in("rsi") registers.rbp, in("rax") registers.rax,
-                    in("rbx") registers.rbx, in("rcx") registers.rip, in("rdx") registers.rdx,
+                    ", in("rdi") registers.rdi, in("rsi") registers.rbp, in("rax") registers.rax,
+                    in("rbx") registers.rbx, in("rcx") registers.rip, in("rdx") registers.rsp,
                     in("r8") registers.r8, in("r9") registers.r9, in("r10") registers.r10,
                     in("r11") registers.rflags, in("r12") registers.r12, in("r13") registers.r13,
                     in("r14") registers.r14, in("r15") registers.r15);

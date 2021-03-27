@@ -6,5 +6,4 @@ edition = "2018"
 
 [dependencies]
 moondust-std = { path = "../../common/moondust-std" }
-moondust-sys = { path = "../../common/moondust-sys" }
 moondust-utils = { path = "../../common/moondust-utils" }

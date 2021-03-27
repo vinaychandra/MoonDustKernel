@@ -4,9 +4,9 @@ use alloc::{boxed::Box, sync::Arc};
 use moondust_utils::{id_generator::IdGenerator, sync::mutex::Mutex};
 use x86_64::structures::paging::PageTable;
 
-use crate::arch::globals;
 use crate::arch::memory::kernel_page_table::KernelPageTable;
 use crate::common::memory::paging::{IMemoryMapper, MapperPermissions};
+use crate::{arch::globals, common::align_up};
 
 use super::{
     state::{Registers, ThreadState},
@@ -23,7 +23,7 @@ pub struct Thread {
 static THREAD_ID_GENERATOR: IdGenerator = IdGenerator::new();
 
 impl Thread {
-    pub async fn new_empty_process(stack_start: u64, stack_size: usize) -> Self {
+    pub async fn new_empty_process(stack_size: usize) -> Self {
         let mut thread = Self {
             thread_id: THREAD_ID_GENERATOR.get_value(),
             page_table: Arc::new(Mutex::new(KernelPageTable::new(
@@ -31,7 +31,7 @@ impl Thread {
             ))),
             state: ThreadState::NotStarted(Registers::default()),
         };
-        thread.setup_user_stack(stack_start, stack_size).await;
+        thread.setup_user_stack(stack_size).await;
         thread
             .increase_user_heap(globals::USER_HEAP_DEFAULT_SIZE)
             .await
@@ -39,13 +39,13 @@ impl Thread {
         thread
     }
 
-    pub async fn new_empty_thread(&self, stack_start: u64, stack_size: usize) -> Self {
+    pub async fn new_empty_thread(&self, stack_size: usize) -> Self {
         let mut thread = Self {
             thread_id: THREAD_ID_GENERATOR.get_value(),
             page_table: self.page_table.clone(),
             state: ThreadState::NotStarted(Registers::default()),
         };
-        thread.setup_user_stack(stack_start, stack_size).await;
+        thread.setup_user_stack(stack_size).await;
         thread
             .increase_user_heap(globals::USER_HEAP_DEFAULT_SIZE)
             .await
@@ -79,13 +79,24 @@ impl Thread {
         }
     }
 
-    async fn setup_user_stack(&mut self, stack_start: u64, stack_size: usize) {
-        debug_assert!(
-            stack_size % globals::PAGE_SIZE == 0,
-            "Stack size should be aligned"
-        );
+    pub fn setup_user_custom_data(&mut self, data: u64) {
+        if let ThreadState::NotStarted(registers) = &mut self.state {
+            registers.rdi = data;
+        } else {
+            panic!("Cannot setup custom data when threadstate is not in NotStarted state.")
+        }
+    }
 
+    async fn setup_user_stack(&mut self, stack_size: usize) {
+        let stack_size = align_up(stack_size, globals::PAGE_SIZE);
+
+        // TODO: Make sure user_stack_allocated_until doesn't fall below a predetermined limit.
         let mut kpt = self.page_table.lock().await;
+        let current_stack_end = kpt.user_stack_allocated_until;
+        let stack_start = current_stack_end - stack_size + 1;
+        // Leave 2 page size as guard page.
+        kpt.user_stack_allocated_until = current_stack_end - stack_size - (2 * globals::PAGE_SIZE);
+
         kpt.map_with_alloc(
             stack_start as *const u8,
             stack_size,
@@ -93,8 +104,8 @@ impl Thread {
         )
         .unwrap();
         if let ThreadState::NotStarted(registers) = &mut self.state {
-            registers.rbp = stack_start + stack_size as u64;
-            registers.rsp = stack_start + stack_size as u64;
+            registers.rbp = stack_start as u64 + stack_size as u64;
+            registers.rsp = stack_start as u64 + stack_size as u64;
         } else {
             panic!("Cannot setup user stack when threadstate is not in syscall.")
         }

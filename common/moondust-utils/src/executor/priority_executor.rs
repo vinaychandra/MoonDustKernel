@@ -41,14 +41,17 @@ where
 
     /// Runs the executor forever.
     pub async fn run(&self) -> ! {
+        //TODO: parametrize over PRIORITY_COUNT
         loop {
             let t0 = self.ex[0].run_n_loops(1);
             let t1 = self.ex[1].run_n_loops(1);
             let t2 = self.ex[2].run_n_loops(1);
+            let t3 = self.ex[3].run_n_loops(1);
+            let t4 = self.ex[4].run_n_loops(1);
 
             // Wait until one of the ticks completes, trying them in order from highest
             // priority to lowest priority.
-            t0.or(t1).or(t2).await;
+            t0.or(t1).or(t2).or(t3).or(t4).await;
         }
     }
 }

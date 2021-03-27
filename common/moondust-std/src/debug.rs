@@ -1,3 +1,4 @@
+use alloc::string::String;
 use core::fmt::{self, Write};
 
 use moondust_sys::syscall::Syscalls;
@@ -13,15 +14,15 @@ impl fmt::Write for DebugPrinter {
 }
 
 #[doc(hidden)]
-pub fn _debug(args: ::core::fmt::Arguments) {
+pub fn _debug(args: String) {
     let mut a = DebugPrinter {};
-    a.write_fmt(args).unwrap();
+    a.write_str(&args).unwrap();
 }
 
 /// Prints to the host through the debug interface.
 #[macro_export]
 macro_rules! debug_print {
     ($($arg:tt)*) => {
-        $crate::debug::_debug(format_args!($($arg)*));
+        $crate::debug::_debug(format!($($arg)*));
     };
 }
