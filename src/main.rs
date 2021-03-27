@@ -149,6 +149,9 @@ async fn load_alpha() {
         let result = SCHEDULER.spawn(4, thread.run_thread()).await;
         info!("Alpha process exited with return status: {}", result);
     }
+
+    let mut thread = Thread::new_empty_process(2 * 4096).await;
+    thread.activate().await;
 }
 
 /// Channel that will spawn new threads onto the scheduler.

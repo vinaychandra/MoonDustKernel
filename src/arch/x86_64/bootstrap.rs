@@ -24,6 +24,7 @@ const EMPTY_PTE: PageTableEntry = PageTableEntry::new();
 
 #[repr(align(4096))]
 struct MemMapEntries([PageTableEntry; 512]);
+/// Stack used to map 512GiB of VMem.
 static mut MEM_MAP_STACK: MemMapEntries = MemMapEntries([EMPTY_PTE; 512]);
 
 const ZERO_ATOMIC64: AtomicU64 = AtomicU64::new(0);

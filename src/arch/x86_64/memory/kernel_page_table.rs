@@ -1,16 +1,12 @@
-use core::{
-    alloc::{Layout, LayoutError},
-    ops::Bound,
-    ptr::NonNull,
-};
+use core::ops::Bound;
 
 use alloc::boxed::Box;
 use moondust_utils::interval_tree::{Interval, IntervalTree};
 use x86_64::{
     registers::control::Cr3,
     structures::paging::{
-        page::PageRange, FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags,
-        PhysFrame, Size4KiB, Translate,
+        page::PageRange, FrameAllocator, FrameDeallocator, Mapper, OffsetPageTable, Page,
+        PageTable, PageTableFlags, PhysFrame, Size4KiB, Translate,
     },
     PhysAddr, VirtAddr,
 };
@@ -295,15 +291,12 @@ impl<'a> IMemoryMapper for OffsetPageTable<'a> {
                     .map_err(|_| "start addr is no aligned")?;
             Page::range(start_page, end_page)
         };
-        let locked_allocator = &crate::arch::PHYSICAL_MEMORY_ALLOCATOR;
-        let mut allocator = locked_allocator.lock();
+
+        let mut deallocator = super::frame_allocator::get_frame_deallocator();
         for page in page_range {
             self.unmap(page).map_or((), |frame| {
                 frame.1.flush();
-                let phys_addr = frame.0.start_address();
-                let virt_addr = phys_addr.as_u64() + globals::MEM_MAP_OFFSET_LOCATION;
-                const LAYOUT: Result<Layout, LayoutError> = Layout::from_size_align(4096, 4096);
-                allocator.dealloc(NonNull::new(virt_addr as *mut u8).unwrap(), LAYOUT.unwrap());
+                unsafe { deallocator.deallocate_frame(frame.0) };
             });
         }
 
