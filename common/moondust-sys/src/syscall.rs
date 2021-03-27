@@ -1,6 +1,6 @@
 pub mod heap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[repr(C)]
 pub enum Syscalls<'a> {
     Exit(u8),
@@ -10,14 +10,14 @@ pub enum Syscalls<'a> {
     Process(ProcessControl),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[repr(C)]
 pub enum HeapControl {
     GetCurrentHeapSize,
     IncreaseHeapBy(usize),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[repr(C)]
 pub enum ProcessControl {
     CreateThread {
@@ -27,7 +27,7 @@ pub enum ProcessControl {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[repr(C)]
 pub enum Sysrets {
     NoVal,
@@ -36,10 +36,10 @@ pub enum Sysrets {
     SuccessWithVal2(u64, u64),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[repr(C)]
 pub struct SyscallWrapper<'a> {
-    pub call_info: Syscalls<'a>,
+    pub call_info: Option<Syscalls<'a>>,
     pub return_info: Sysrets,
 }
 
@@ -47,7 +47,7 @@ impl Syscalls<'_> {
     /// Invoke the syscall.
     pub fn invoke(self) -> Sysrets {
         let mut wrapper = SyscallWrapper {
-            call_info: self,
+            call_info: Some(self),
             return_info: Sysrets::NoVal,
         };
 

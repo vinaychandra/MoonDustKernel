@@ -134,7 +134,10 @@ fn user_switching_fn(mut thread_runner: Pin<&mut UserSwitcher>, cx: &mut Context
             thread_id);
         syscall_state = SyscallState {
             registers: regs,
-            syscall_info: (*retrieved_syscall).call_info.clone(),
+            syscall_info: (*retrieved_syscall)
+                .call_info
+                .take()
+                .expect("Did not get a syscall from user"),
             waker: cx.waker().clone(),
             return_data_is_ready: false,
             return_data: &mut (*retrieved_syscall).return_info,

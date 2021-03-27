@@ -1,7 +1,10 @@
 use core::ops::Bound;
 
 use alloc::boxed::Box;
-use moondust_utils::interval_tree::{Interval, IntervalTree};
+use moondust_utils::{
+    id_generator::IdGenerator,
+    interval_tree::{Interval, IntervalTree},
+};
 use x86_64::{
     registers::control::Cr3,
     structures::paging::{
@@ -19,12 +22,15 @@ use crate::{
     },
 };
 
+static PROCESS_ID_GENERATOR: IdGenerator = IdGenerator::new();
+
 /// Structure for a processes main address space.
 #[derive(Debug)]
 pub struct KernelPageTable {
     page_table: Box<PageTable>,
     vmem_allocated: usize,
     mem_areas: IntervalTree<u64>,
+    process_id: usize,
 
     heap_allocated: usize,
 
@@ -35,13 +41,17 @@ pub struct KernelPageTable {
 impl KernelPageTable {
     /// Create an empty KernelPageTable.
     pub fn new(page_table: Box<PageTable>) -> Self {
-        Self {
+        let val = Self {
             page_table,
             vmem_allocated: 0,
             mem_areas: IntervalTree::new(),
             heap_allocated: 0,
             user_stack_allocated_until: globals::USER_STACK_END,
-        }
+            process_id: PROCESS_ID_GENERATOR.get_value(),
+        };
+
+        info!(target: "kernel_page_table", "Created a page table with id {}", val.process_id);
+        val
     }
 
     /// Get the mapper that can map/unmap vmem.
@@ -157,8 +167,9 @@ impl<'a> IMemoryMapper for KernelPageTable {
 impl Drop for KernelPageTable {
     fn drop(&mut self) {
         info!(
-            "Dropping PageTable... (Currently allocated {} bytes)",
-            self.vmem_allocated
+            target:"kernel_page_table",
+            "Dropping PageTable [{}]... (Currently allocated {} bytes)",
+            self.process_id, self.vmem_allocated
         );
 
         let areas = self.mem_areas.clone();
