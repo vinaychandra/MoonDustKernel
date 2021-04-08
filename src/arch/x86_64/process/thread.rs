@@ -8,10 +8,7 @@ use crate::arch::memory::kernel_page_table::KernelPageTable;
 use crate::common::memory::paging::{IMemoryMapper, MapperPermissions};
 use crate::{arch::globals, common::align_up};
 
-use super::{
-    state::{Registers, ThreadState},
-    user_future::UserSwitcher,
-};
+use super::state::{Registers, ThreadState};
 
 /// A single thread of execution in the kernel.
 #[derive(Debug)]
@@ -61,8 +58,7 @@ impl Thread {
     pub async fn run_thread(mut self) -> u8 {
         loop {
             self.activate().await;
-            let user_switcher = UserSwitcher { thread: &mut self };
-            user_switcher.await;
+            super::user_future::user_switching_fn(&mut self);
 
             match self.state {
                 ThreadState::Running => panic!("Thread cannot be in Running state after running!"),

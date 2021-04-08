@@ -30,6 +30,10 @@ impl<T> AsyncOnce<T> {
         }
     }
 
+    pub fn is_ready(&self) -> bool {
+        self.state.is_completed()
+    }
+
     pub fn try_set_result(&self, result: T) {
         self.state.call_once(|| Arc::new(result));
         for waker in self.wakers.pop() {

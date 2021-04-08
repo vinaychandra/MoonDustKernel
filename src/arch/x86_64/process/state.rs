@@ -1,6 +1,5 @@
-use core::task::Waker;
-
 use moondust_sys::syscall::{Syscalls, Sysrets};
+use moondust_utils::sync::once::AsyncOnce;
 
 #[derive(Default, Debug)]
 pub struct Registers {
@@ -72,8 +71,7 @@ pub enum ThreadState {
 pub struct SyscallState {
     pub registers: Registers,
     pub syscall_info: Syscalls<'static>,
-    pub waker: Waker,
 
-    pub return_data_is_ready: bool,
+    pub return_data_awaiter: AsyncOnce<()>,
     pub return_data: &'static mut Sysrets,
 }

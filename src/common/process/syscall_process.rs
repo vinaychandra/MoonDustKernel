@@ -16,6 +16,8 @@ impl Thread {
     /// In such a case, the waker is used to reschedule the task
     /// when appropriate.
     /// Return of a [Poll::Ready] means the thread exited.
+    /// IMPORTANT: Any code after await in this function can switch
+    /// to a different address space.
     pub async fn process_syscall(&mut self) -> Poll<u8> {
         let state = &mut self.state;
         let syscall = match state {
@@ -31,8 +33,7 @@ impl Thread {
             Syscalls::Debug { data } => {
                 info!("Test syscall with val {}", data);
                 *syscall.return_data = Sysrets::NoVal;
-                syscall.return_data_is_ready = true;
-                syscall.waker.wake_by_ref();
+                syscall.return_data_awaiter.try_set_result(());
                 Poll::Pending
             }
             Syscalls::Heap(ref heap_control) => match heap_control {
@@ -45,8 +46,7 @@ impl Thread {
 
                     let syscall = self.get_syscall();
                     *syscall.return_data = Sysrets::SuccessWithVal(heap_size as _);
-                    syscall.return_data_is_ready = true;
-                    syscall.waker.wake_by_ref();
+                    syscall.return_data_awaiter.try_set_result(());
                     Poll::Pending
                 }
                 HeapControl::IncreaseHeapBy(size) => {
@@ -61,8 +61,7 @@ impl Thread {
 
                     let syscall = self.get_syscall();
                     *syscall.return_data = sysret;
-                    syscall.return_data_is_ready = true;
-                    syscall.waker.wake_by_ref();
+                    syscall.return_data_awaiter.try_set_result(());
                     Poll::Pending
                 }
             },
@@ -86,8 +85,7 @@ impl Thread {
 
                     let syscall = self.get_syscall();
                     *syscall.return_data = Sysrets::SuccessWithVal(thread_id as u64);
-                    syscall.return_data_is_ready = true;
-                    syscall.waker.wake_by_ref();
+                    syscall.return_data_awaiter.try_set_result(());
                     Poll::Pending
                 }
             },

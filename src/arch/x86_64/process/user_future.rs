@@ -4,12 +4,6 @@
 //! the current async task has returned with a syscall request. This allows the kernel to operate on a
 //! single thread while the user thread has its own stack.
 
-use core::{
-    pin::Pin,
-    task::{Context, Poll},
-};
-
-use futures_lite::Future;
 use moondust_sys::syscall::SyscallWrapper;
 use x86_64::{registers::model_specific::LStar, VirtAddr};
 
@@ -18,25 +12,12 @@ use super::{
     Thread,
 };
 use crate::arch::cpu_locals;
-
-crate struct UserSwitcher<'a> {
-    pub thread: &'a mut Thread,
-}
-
-impl<'a> Future for UserSwitcher<'a> {
-    type Output = ();
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        user_switching_fn(self, cx)
-    }
-}
+use moondust_utils::sync::once::AsyncOnce;
 
 /// The function that implements the switching logic.
 /// The switching works because rust sets the required stacks at the start of the function.
 /// We store these pointers and restore them when we want to come back here from a user stack.
-fn user_switching_fn(mut thread_runner: Pin<&mut UserSwitcher>, cx: &mut Context<'_>) -> Poll<()> {
-    let thread = &mut thread_runner.thread;
-
+pub fn user_switching_fn<'a>(thread: &'a mut Thread) {
     cpu_locals::CURRENT_THREAD_ID.set(thread.thread_id);
     let thread_id = thread.thread_id;
 
@@ -85,12 +66,12 @@ fn user_switching_fn(mut thread_runner: Pin<&mut UserSwitcher>, cx: &mut Context
             }
         }
         ThreadState::Syscall(state) => {
-            if !state.return_data_is_ready {
+            if !state.return_data_awaiter.is_ready() {
                 debug!(target: "user_future",
                     "[CPU:{}][Thread:{}] Thread state was syscall but data is not ready.",
                     cpu_locals::PROCESSOR_ID.get(),
                     thread_id);
-                return Poll::Pending;
+                return;
             }
 
             debug!(target: "user_future",
@@ -138,14 +119,13 @@ fn user_switching_fn(mut thread_runner: Pin<&mut UserSwitcher>, cx: &mut Context
                 .call_info
                 .take()
                 .expect("Did not get a syscall from user"),
-            waker: cx.waker().clone(),
-            return_data_is_ready: false,
+            return_data_awaiter: AsyncOnce::new(),
             return_data: &mut (*retrieved_syscall).return_info,
         };
     }
 
     thread.state = ThreadState::Syscall(syscall_state);
-    return Poll::Ready(());
+    return;
 }
 
 // We store RSP and RBP so that the user stack can be stitched back to the kernel stack.
